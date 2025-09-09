@@ -1,7 +1,7 @@
 # Simple workflow for deploying static content to GitHub Pages
 name: Deploy static content to Pages
 env:
-  PUBLISH_DIR: WebsiteBlazor/bin/Debug/net8.0/wwwroot
+  PUBLISH_DIR: WebsiteBlazor/bin/Release/net8.0/wwwroot
 
 on:
   # Runs on pushes targeting the default branch for the app's folder path
@@ -51,7 +51,7 @@ jobs:
         uses: SteveSandersonMS/ghaction-rewrite-base-href@5b54862a8831e012d4f1a8b2660894415fdde8ec # v1.1.0
         with:
           html_path: ${{ env.PUBLISH_DIR }}/index.html
-          base_href: /WebsiteBlazor/
+          base_href: https://nipoondo.github.io/WebsiteBlazor/
         
       - name: Setup Pages
         uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
