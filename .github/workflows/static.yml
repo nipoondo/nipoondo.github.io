@@ -40,3 +40,5 @@ jobs:
           path: '.'
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4.7.3
+        with:
+          folder: WebsiteBlazor/bin/Debug/net8.0/wwwroot
