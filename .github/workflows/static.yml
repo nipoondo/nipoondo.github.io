@@ -1,43 +1,34 @@
-# Simple workflow for deploying static content to GitHub Pages
-name: Deploy static content to Pages
+name: Build and Deploy
 
 on:
-  # Runs on pushes targeting the default branch
-  push:
-    branches: ["main"]
-
-  # Allows you to run this workflow manually from the Actions tab
+#  push:
+#    branches: [ "master" ]
   workflow_dispatch:
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
-permissions:
-  contents: write
-  pages: write
-  id-token: write
-
-# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
-# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+env:
+  NETCORE_VERSION: "9.0.x"
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  SRC: "/home/runner/work/klean/klean/src/src"
 
 jobs:
-  # Single deploy job since we're just deploying
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build-and-deploy:
+    concurrency: ci-${{ github.ref }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
     steps:
-      - name: Checkout
+      - name: Checkout 🛎️
         uses: actions/checkout@v4
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          # Upload entire repository
-          path: '.'
+
+      - name: Setup Tailwind CSS 🎨
+        run: |
+          wget https://github.com/tailwindlabs/tailwindcss/releases/latest/download/tailwindcss-linux-x64 -O /usr/local/bin/tailwindcss
+          chmod +x /usr/local/bin/tailwindcss
+          cd ${{ env.SRC }}/Presentation
+          tailwindcss --input ./wwwroot/app.css --output ./wwwroot/app.min.css --minify
+
       - name: Change base href in App.razor to match gh repo name 🏷️
         run: |
           cd ${{ env.SRC }}/Presentation
@@ -58,8 +49,10 @@ jobs:
 
       - name: Copy index.html to 404.html 📄
         run: |
-          cp dist/wwwroot/index.html dist/wwwroot/404.html
-      - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@v4.7.3
+          cp dist/wwwroot/index.html dist/wwwroot/404.html  
+
+      - name: Deploy to gh-pages 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          folder: WebsiteBlazor/bin/Debug/net8.0/wwwroot
+          branch: gh-pages
+          folder: dist/wwwroot
