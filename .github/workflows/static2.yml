@@ -27,7 +27,7 @@ jobs:
 
       # Publish the site
       - name: Publish
-        run: dotnet publish WebsiteBlazor/WebsiteBlazor.sln -c:Release -o:publish -p:GHPages=true
+        run: dotnet publish WebsiteBlazor/WebsiteBlazor.csproj -c Release -o publish -p:StaticWebAssetBasePath=WebsiteBlazor -p:BaseHref=/WebsiteBlazor/
 
       # Deploy the site
       - name: Deploy
