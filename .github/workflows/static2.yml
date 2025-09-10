@@ -27,7 +27,7 @@ jobs:
 
       # Publish the site
       - name: Publish
-        run: dotnet publish WebsiteBlazor/WebsiteBlazor.sln -c Release -o publish -p:BaseHref=/WebsiteBlazor/
+        run: dotnet publish WebsiteBlazor/WebsiteBlazor.sln -c Release -o publish -p:BaseHref=/
 
       # Deploy the site
       - name: Deploy
