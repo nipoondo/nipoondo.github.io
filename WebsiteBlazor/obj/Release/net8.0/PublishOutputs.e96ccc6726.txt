@@ -1,0 +1,2 @@
+C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\publish\emcc-props.json
+C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\publish\web.config
