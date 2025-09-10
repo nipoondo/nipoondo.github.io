@@ -17,7 +17,7 @@ namespace WebsiteBlazor.Pages
 
         private void GenerateMonsterSprite()
         {
-            _sprite = AdvancedPixelMonsterGenerator.Main(_settings);
+            _sprite = AdvancedPixelMonsterGenerator.MonsterMain(_settings);
         }
     }
 }

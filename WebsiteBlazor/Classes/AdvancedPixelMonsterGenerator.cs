@@ -19,7 +19,7 @@ namespace AutoSpriteCreator
 
     public class AdvancedPixelMonsterGenerator
     {
-        public static string Main(Settings settings)
+        public static string MonsterMain(Settings settings)
         {
             Image<Rgba32> monster = GenerateMonster(settings.Dimension, settings.Dimension, settings);
 
