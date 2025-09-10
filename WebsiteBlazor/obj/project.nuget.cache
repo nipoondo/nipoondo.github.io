@@ -1,9 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "nMGwnWKqjQc=",
+  "dgSpecHash": "IzFLDmpa4NI=",
   "success": true,
   "projectFilePath": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\WebsiteBlazor.csproj",
   "expectedPackageFiles": [
+    "C:\\Users\\Colin\\.nuget\\packages\\blazorwasmbrotliloader.build\\1.0.1\\blazorwasmbrotliloader.build.1.0.1.nupkg.sha512",
     "C:\\Users\\Colin\\.nuget\\packages\\microsoft.aspnetcore.authorization\\8.0.14\\microsoft.aspnetcore.authorization.8.0.14.nupkg.sha512",
     "C:\\Users\\Colin\\.nuget\\packages\\microsoft.aspnetcore.components\\8.0.14\\microsoft.aspnetcore.components.8.0.14.nupkg.sha512",
     "C:\\Users\\Colin\\.nuget\\packages\\microsoft.aspnetcore.components.analyzers\\8.0.14\\microsoft.aspnetcore.components.analyzers.8.0.14.nupkg.sha512",
@@ -30,6 +31,8 @@
     "C:\\Users\\Colin\\.nuget\\packages\\microsoft.jsinterop.webassembly\\8.0.14\\microsoft.jsinterop.webassembly.8.0.14.nupkg.sha512",
     "C:\\Users\\Colin\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.14\\microsoft.net.illink.tasks.8.0.14.nupkg.sha512",
     "C:\\Users\\Colin\\.nuget\\packages\\microsoft.net.sdk.webassembly.pack\\9.0.3\\microsoft.net.sdk.webassembly.pack.9.0.3.nupkg.sha512",
+    "C:\\Users\\Colin\\.nuget\\packages\\publishspaforgithubpages.build\\3.0.1\\publishspaforgithubpages.build.3.0.1.nupkg.sha512",
+    "C:\\Users\\Colin\\.nuget\\packages\\sixlabors.imagesharp\\3.1.11\\sixlabors.imagesharp.3.1.11.nupkg.sha512",
     "C:\\Users\\Colin\\.nuget\\packages\\system.io.pipelines\\8.0.0\\system.io.pipelines.8.0.0.nupkg.sha512",
     "C:\\Users\\Colin\\.nuget\\packages\\microsoft.netcore.app.runtime.mono.browser-wasm\\8.0.14\\microsoft.netcore.app.runtime.mono.browser-wasm.8.0.14.nupkg.sha512"
   ],

@@ -2,6 +2,16 @@
 
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<input type="button" @onclick="GenerateMonsterSprite">Generate</input>
+<select @bind="_settings.Dimension">
+	<option value="32">32px</option>
+	<option value="48">48px</option>
+	<option value="64">64px</option>
+</select>
+<button @onclick="(() => _settings.DrawOutline = false)">Outline Colored</button>
+<button @onclick="(() => _settings.DrawOutline = true)">Outline Black</button>
 
-Welcome to your new app.
+@if(!string.IsNullOrEmpty(_sprite))
+{
+	<img src="@_sprite" style="width: 512px; image-rendering: pixelated;" />
+}
