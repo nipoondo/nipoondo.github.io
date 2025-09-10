@@ -1029,7 +1029,6 @@ C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\staticwebassets\msbuild.buildMultiTargeting.WebsiteBlazor.props
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\staticwebassets\msbuild.buildTransitive.WebsiteBlazor.props
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\staticwebassets.pack.json
-C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\staticwebassets.upToDateCheck.txt
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\WebsiteB.68568467.Up2Date
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\WebsiteBlazor.dll
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\refint\WebsiteBlazor.dll
@@ -1040,6 +1039,6 @@ C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\bin\Release\net8.0\
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\bin\Release\net8.0\SixLabors.ImageSharp.dll
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\webcil\SixLabors.ImageSharp.wasm
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\qm6oki9gm0-ryqkshtnlr.gz
-C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\qdsoiytnc4-6a1jhnkewb.gz
-C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\wsopoa4uvs-mh8lhuij27.gz
-C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\x7c6dsjcst-rej9mv1ne3.gz
+C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\qdsoiytnc4-v6zokonakr.gz
+C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\wsopoa4uvs-zw7ww4nlvo.gz
+C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\x7c6dsjcst-qwgibr5rwf.gz
