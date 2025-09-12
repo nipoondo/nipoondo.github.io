@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "LQrQW1i4cew9C1MYrcHd/A8rg3oYol2HYAs9FevHYOQ=",
+  "Hash": "vmaM3dIHcwYBciI7B95RkB1yR6MEBhJQHZb/lXGshrg=",
   "Source": "WebsiteBlazor",
   "BasePath": "/",
   "Mode": "Root",
@@ -31,8 +31,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "WasmResource",
       "AssetTraitValue": "manifest",
-      "Fingerprint": "ntl2p8dz8s",
-      "Integrity": "BbzJ5zLx1DCedQhFcP2wHqPT/+eseim2rI5+nobocPU=",
+      "Fingerprint": "y72kc5x2m5",
+      "Integrity": "wmdRZ6iCKWO8KrO9aWvOiAKZJQOnoKBj9t8u/PHnA+8=",
       "CopyToOutputDirectory": "PreserveNewest",
       "CopyToPublishDirectory": "Never",
       "OriginalItemSpec": "obj\\Release\\net8.0\\blazor.boot.json"
@@ -4294,8 +4294,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "WasmResource",
       "AssetTraitValue": "symbol",
-      "Fingerprint": "q1x603tbjy",
-      "Integrity": "MpfuX7X70yzy5MkvDnW/UvzU+vQqACzPMZEH0RpONK0=",
+      "Fingerprint": "cbt09kej00",
+      "Integrity": "aK3dCs7zaAE5t7s05Lhxjgiy4JYZk6ihxFhCtxMUc2k=",
       "CopyToOutputDirectory": "PreserveNewest",
       "CopyToPublishDirectory": "Never",
       "OriginalItemSpec": "obj\\Release\\net8.0\\WebsiteBlazor.pdb"
@@ -4315,8 +4315,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "WasmResource",
       "AssetTraitValue": "runtime",
-      "Fingerprint": "rdaljoo789",
-      "Integrity": "z7qu8EnyY18iO6D8LQAaNwR3tuI5y0vwHiDC1hlGw/8=",
+      "Fingerprint": "fyklch6dyl",
+      "Integrity": "qZJ+DHjj3VLsv9sWn8ihA9ifVWto8lNaSnY6husQDfk=",
       "CopyToOutputDirectory": "PreserveNewest",
       "CopyToPublishDirectory": "Never",
       "OriginalItemSpec": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\webcil\\WebsiteBlazor.wasm"
@@ -7493,7 +7493,7 @@
       "OriginalItemSpec": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\dotnet.native.wasm"
     },
     {
-      "Identity": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\qdsoiytnc4-rdaljoo789.gz",
+      "Identity": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\qdsoiytnc4-fyklch6dyl.gz",
       "SourceId": "WebsiteBlazor",
       "SourceType": "Computed",
       "ContentRoot": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\",
@@ -7507,8 +7507,8 @@
       "RelatedAsset": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\WebsiteBlazor.wasm",
       "AssetTraitName": "Content-Encoding",
       "AssetTraitValue": "gzip",
-      "Fingerprint": "a8ykevqozp",
-      "Integrity": "SjR0d3NItDxBFrnOHyeXhVdjvrom4lzZ6ZqaRwZ6Idk=",
+      "Fingerprint": "8tofmhtrht",
+      "Integrity": "pIqx4+HNCwqNCMb1NqvAy2XAU/wTJSrZYnV/GAXa0WU=",
       "CopyToOutputDirectory": "PreserveNewest",
       "CopyToPublishDirectory": "Never",
       "OriginalItemSpec": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\WebsiteBlazor.wasm"
@@ -8291,7 +8291,7 @@
       "OriginalItemSpec": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\System.Xml.XDocument.wasm"
     },
     {
-      "Identity": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\wsopoa4uvs-q1x603tbjy.gz",
+      "Identity": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\wsopoa4uvs-cbt09kej00.gz",
       "SourceId": "WebsiteBlazor",
       "SourceType": "Computed",
       "ContentRoot": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\",
@@ -8305,8 +8305,8 @@
       "RelatedAsset": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\WebsiteBlazor.pdb",
       "AssetTraitName": "Content-Encoding",
       "AssetTraitValue": "gzip",
-      "Fingerprint": "sgy1l11mx6",
-      "Integrity": "RDLYwrkG9ab0q0R21Rj7NRUs1uA4uAecUxVJO0dW1nI=",
+      "Fingerprint": "0heh96c7qh",
+      "Integrity": "fJu2Cfw1emTVisMDyKbyW2+p2x+ueug5YuoANj4xJPk=",
       "CopyToOutputDirectory": "PreserveNewest",
       "CopyToPublishDirectory": "Never",
       "OriginalItemSpec": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\WebsiteBlazor.pdb"
@@ -8354,7 +8354,7 @@
       "OriginalItemSpec": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\System.Private.Xml.wasm"
     },
     {
-      "Identity": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\x7c6dsjcst-ntl2p8dz8s.gz",
+      "Identity": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\x7c6dsjcst-y72kc5x2m5.gz",
       "SourceId": "WebsiteBlazor",
       "SourceType": "Computed",
       "ContentRoot": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\",
@@ -8368,8 +8368,8 @@
       "RelatedAsset": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\blazor.boot.json",
       "AssetTraitName": "Content-Encoding",
       "AssetTraitValue": "gzip",
-      "Fingerprint": "8i9jnyktxg",
-      "Integrity": "4HVA/Y19INdeCLv3HpnfJ1BPUe3UwVdIUH3f6DAS39w=",
+      "Fingerprint": "e19obaafsc",
+      "Integrity": "PgmSJ8LPfF3f8nB3P4Eu3CioRH3JckdBuqSVjboebZQ=",
       "CopyToOutputDirectory": "PreserveNewest",
       "CopyToPublishDirectory": "Never",
       "OriginalItemSpec": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\bin\\Release\\net8.0\\wwwroot\\_framework\\blazor.boot.json"
@@ -8899,11 +8899,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"BbzJ5zLx1DCedQhFcP2wHqPT/+eseim2rI5+nobocPU=\""
+          "Value": "\"wmdRZ6iCKWO8KrO9aWvOiAKZJQOnoKBj9t8u/PHnA+8=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:39 GMT"
+          "Value": "Fri, 12 Sep 2025 08:36:48 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -8913,18 +8913,18 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-BbzJ5zLx1DCedQhFcP2wHqPT/+eseim2rI5+nobocPU="
+          "Value": "sha256-wmdRZ6iCKWO8KrO9aWvOiAKZJQOnoKBj9t8u/PHnA+8="
         }
       ]
     },
     {
       "Route": "_framework/blazor.boot.json",
-      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\x7c6dsjcst-ntl2p8dz8s.gz",
+      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\x7c6dsjcst-y72kc5x2m5.gz",
       "Selectors": [
         {
           "Name": "Content-Encoding",
           "Value": "gzip",
-          "Quality": "0.000114429569"
+          "Quality": "0.000112422709"
         }
       ],
       "ResponseHeaders": [
@@ -8934,15 +8934,15 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "8738"
+          "Value": "8894"
         },
         {
           "Name": "ETag",
-          "Value": "\"4HVA/Y19INdeCLv3HpnfJ1BPUe3UwVdIUH3f6DAS39w=\""
+          "Value": "\"PgmSJ8LPfF3f8nB3P4Eu3CioRH3JckdBuqSVjboebZQ=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:19 GMT"
+          "Value": "Fri, 12 Sep 2025 08:35:58 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -8962,19 +8962,19 @@
         },
         {
           "Name": "ETag",
-          "Value": "W/\"BbzJ5zLx1DCedQhFcP2wHqPT/+eseim2rI5+nobocPU=\""
+          "Value": "W/\"wmdRZ6iCKWO8KrO9aWvOiAKZJQOnoKBj9t8u/PHnA+8=\""
         }
       ],
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-BbzJ5zLx1DCedQhFcP2wHqPT/+eseim2rI5+nobocPU="
+          "Value": "sha256-wmdRZ6iCKWO8KrO9aWvOiAKZJQOnoKBj9t8u/PHnA+8="
         }
       ]
     },
     {
       "Route": "_framework/blazor.boot.json.gz",
-      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\x7c6dsjcst-ntl2p8dz8s.gz",
+      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\x7c6dsjcst-y72kc5x2m5.gz",
       "Selectors": [],
       "ResponseHeaders": [
         {
@@ -8983,7 +8983,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "8738"
+          "Value": "8894"
         },
         {
           "Name": "Content-Type",
@@ -8991,11 +8991,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"4HVA/Y19INdeCLv3HpnfJ1BPUe3UwVdIUH3f6DAS39w=\""
+          "Value": "\"PgmSJ8LPfF3f8nB3P4Eu3CioRH3JckdBuqSVjboebZQ=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:19 GMT"
+          "Value": "Fri, 12 Sep 2025 08:35:58 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -9013,7 +9013,7 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-4HVA/Y19INdeCLv3HpnfJ1BPUe3UwVdIUH3f6DAS39w="
+          "Value": "sha256-PgmSJ8LPfF3f8nB3P4Eu3CioRH3JckdBuqSVjboebZQ="
         }
       ]
     },
@@ -36702,7 +36702,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "35608"
+          "Value": "36040"
         },
         {
           "Name": "Content-Type",
@@ -36710,11 +36710,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"MpfuX7X70yzy5MkvDnW/UvzU+vQqACzPMZEH0RpONK0=\""
+          "Value": "\"aK3dCs7zaAE5t7s05Lhxjgiy4JYZk6ihxFhCtxMUc2k=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:38 GMT"
+          "Value": "Fri, 12 Sep 2025 08:36:48 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -36724,18 +36724,18 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-MpfuX7X70yzy5MkvDnW/UvzU+vQqACzPMZEH0RpONK0="
+          "Value": "sha256-aK3dCs7zaAE5t7s05Lhxjgiy4JYZk6ihxFhCtxMUc2k="
         }
       ]
     },
     {
       "Route": "_framework/WebsiteBlazor.pdb",
-      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\wsopoa4uvs-q1x603tbjy.gz",
+      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\wsopoa4uvs-cbt09kej00.gz",
       "Selectors": [
         {
           "Name": "Content-Encoding",
           "Value": "gzip",
-          "Quality": "0.000042594880"
+          "Quality": "0.000042331626"
         }
       ],
       "ResponseHeaders": [
@@ -36745,15 +36745,15 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "23476"
+          "Value": "23622"
         },
         {
           "Name": "ETag",
-          "Value": "\"RDLYwrkG9ab0q0R21Rj7NRUs1uA4uAecUxVJO0dW1nI=\""
+          "Value": "\"fJu2Cfw1emTVisMDyKbyW2+p2x+ueug5YuoANj4xJPk=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:19 GMT"
+          "Value": "Fri, 12 Sep 2025 08:35:58 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -36773,19 +36773,19 @@
         },
         {
           "Name": "ETag",
-          "Value": "W/\"MpfuX7X70yzy5MkvDnW/UvzU+vQqACzPMZEH0RpONK0=\""
+          "Value": "W/\"aK3dCs7zaAE5t7s05Lhxjgiy4JYZk6ihxFhCtxMUc2k=\""
         }
       ],
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-MpfuX7X70yzy5MkvDnW/UvzU+vQqACzPMZEH0RpONK0="
+          "Value": "sha256-aK3dCs7zaAE5t7s05Lhxjgiy4JYZk6ihxFhCtxMUc2k="
         }
       ]
     },
     {
       "Route": "_framework/WebsiteBlazor.pdb.gz",
-      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\wsopoa4uvs-q1x603tbjy.gz",
+      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\wsopoa4uvs-cbt09kej00.gz",
       "Selectors": [],
       "ResponseHeaders": [
         {
@@ -36794,7 +36794,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "23476"
+          "Value": "23622"
         },
         {
           "Name": "Content-Type",
@@ -36802,11 +36802,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"RDLYwrkG9ab0q0R21Rj7NRUs1uA4uAecUxVJO0dW1nI=\""
+          "Value": "\"fJu2Cfw1emTVisMDyKbyW2+p2x+ueug5YuoANj4xJPk=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:19 GMT"
+          "Value": "Fri, 12 Sep 2025 08:35:58 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -36824,7 +36824,7 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-RDLYwrkG9ab0q0R21Rj7NRUs1uA4uAecUxVJO0dW1nI="
+          "Value": "sha256-fJu2Cfw1emTVisMDyKbyW2+p2x+ueug5YuoANj4xJPk="
         }
       ]
     },
@@ -36839,7 +36839,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "36117"
+          "Value": "37141"
         },
         {
           "Name": "Content-Type",
@@ -36847,11 +36847,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"z7qu8EnyY18iO6D8LQAaNwR3tuI5y0vwHiDC1hlGw/8=\""
+          "Value": "\"qZJ+DHjj3VLsv9sWn8ihA9ifVWto8lNaSnY6husQDfk=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:38 GMT"
+          "Value": "Fri, 12 Sep 2025 08:36:48 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -36861,18 +36861,18 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-z7qu8EnyY18iO6D8LQAaNwR3tuI5y0vwHiDC1hlGw/8="
+          "Value": "sha256-qZJ+DHjj3VLsv9sWn8ihA9ifVWto8lNaSnY6husQDfk="
         }
       ]
     },
     {
       "Route": "_framework/WebsiteBlazor.wasm",
-      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\qdsoiytnc4-rdaljoo789.gz",
+      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\qdsoiytnc4-fyklch6dyl.gz",
       "Selectors": [
         {
           "Name": "Content-Encoding",
           "Value": "gzip",
-          "Quality": "0.000060731204"
+          "Quality": "0.000061409973"
         }
       ],
       "ResponseHeaders": [
@@ -36882,15 +36882,15 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "16465"
+          "Value": "16283"
         },
         {
           "Name": "ETag",
-          "Value": "\"SjR0d3NItDxBFrnOHyeXhVdjvrom4lzZ6ZqaRwZ6Idk=\""
+          "Value": "\"pIqx4+HNCwqNCMb1NqvAy2XAU/wTJSrZYnV/GAXa0WU=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:19 GMT"
+          "Value": "Fri, 12 Sep 2025 08:35:58 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -36910,19 +36910,19 @@
         },
         {
           "Name": "ETag",
-          "Value": "W/\"z7qu8EnyY18iO6D8LQAaNwR3tuI5y0vwHiDC1hlGw/8=\""
+          "Value": "W/\"qZJ+DHjj3VLsv9sWn8ihA9ifVWto8lNaSnY6husQDfk=\""
         }
       ],
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-z7qu8EnyY18iO6D8LQAaNwR3tuI5y0vwHiDC1hlGw/8="
+          "Value": "sha256-qZJ+DHjj3VLsv9sWn8ihA9ifVWto8lNaSnY6husQDfk="
         }
       ]
     },
     {
       "Route": "_framework/WebsiteBlazor.wasm.gz",
-      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\qdsoiytnc4-rdaljoo789.gz",
+      "AssetFile": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\obj\\Release\\net8.0\\compressed\\qdsoiytnc4-fyklch6dyl.gz",
       "Selectors": [],
       "ResponseHeaders": [
         {
@@ -36931,7 +36931,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "16465"
+          "Value": "16283"
         },
         {
           "Name": "Content-Type",
@@ -36939,11 +36939,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"SjR0d3NItDxBFrnOHyeXhVdjvrom4lzZ6ZqaRwZ6Idk=\""
+          "Value": "\"pIqx4+HNCwqNCMb1NqvAy2XAU/wTJSrZYnV/GAXa0WU=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:13:19 GMT"
+          "Value": "Fri, 12 Sep 2025 08:35:58 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -36961,7 +36961,7 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-SjR0d3NItDxBFrnOHyeXhVdjvrom4lzZ6ZqaRwZ6Idk="
+          "Value": "sha256-pIqx4+HNCwqNCMb1NqvAy2XAU/wTJSrZYnV/GAXa0WU="
         }
       ]
     },
@@ -37125,7 +37125,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:11:14 GMT"
+          "Value": "Wed, 10 Sep 2025 14:49:10 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -37162,7 +37162,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Wed, 10 Sep 2025 14:11:14 GMT"
+          "Value": "Wed, 10 Sep 2025 14:49:10 GMT"
         },
         {
           "Name": "Cache-Control",
