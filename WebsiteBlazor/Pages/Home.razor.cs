@@ -19,5 +19,10 @@ namespace WebsiteBlazor.Pages
         {
             _sprite = AdvancedPixelMonsterGenerator.MonsterMain(_settings);
         }
+
+        private void NavigateToPalette()
+        {
+            nvgMgr.NavigateTo("/palette");
+        }
     }
 }

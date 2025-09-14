@@ -1046,6 +1046,6 @@ C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\bin\Release\net8.0\
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\bin\Release\net8.0\publish\WebsiteBlazor.staticwebassets.endpoints.json
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\bin\Release\net8.0\publish\wwwroot\_framework\blazor.boot.json
 C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\staticwebassets.upToDateCheck.txt
-C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\qdsoiytnc4-8s7c1pv66t.gz
-C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\wsopoa4uvs-1g02czfujs.gz
-C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\x7c6dsjcst-tmcqrwryal.gz
+C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\qdsoiytnc4-7x6dronye5.gz
+C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\wsopoa4uvs-r9p0uzq1c0.gz
+C:\Users\Colin\source\repos\nipoondo.github.io\WebsiteBlazor\obj\Release\net8.0\compressed\x7c6dsjcst-edx3xqchdg.gz

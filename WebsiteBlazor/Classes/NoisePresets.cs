@@ -2,7 +2,7 @@
 
 namespace WebsiteBlazor.Classes
 {
-    public enum NoiseStyle { Blobby, Balanced, Detailed }
+    public enum NoiseStyle { Blobby, Balanced, Detailed, Random }
 
     public static class NoisePresets
     {
@@ -42,12 +42,20 @@ namespace WebsiteBlazor.Classes
                     break;
 
                 // Lots of tight detail (many wiggles), small silhouette displacement
-                default: // Detailed
+                case NoiseStyle.Detailed:
                     minCells = 6; maxCells = 12;
                     minAmpFactor = 0.02f; maxAmpFactor = 0.06f; // small amplitude so wiggles are fine-grained
                     minOct = 3; maxOct = 5;                       // many octaves
                     minPers = 0.55f; maxPers = 0.80f;             // keep higher persistence so fine octaves are visible
                     scaleMultiplier = 1.60f;                      // push scale larger -> more cells (higher freq)
+                    break;
+
+                default:
+                    minCells = 1; maxCells = 12;
+                    minAmpFactor = 0.01f; maxAmpFactor = 0.3f;
+                    minOct = 1; maxOct = 5;
+                    minPers = 0.1f; maxPers = 0.90f;
+                    scaleMultiplier = 1.60f;
                     break;
             }
 

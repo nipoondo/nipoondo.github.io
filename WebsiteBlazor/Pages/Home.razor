@@ -1,4 +1,6 @@
-﻿@page "/"
+﻿@inject NavigationManager nvgMgr;
+
+@page "/"
 
 <style>
 	.wrapper {
@@ -61,6 +63,7 @@
 			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Blobby)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Blobby ? "active-button" : "")">Blobby</button>
 			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Balanced)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Balanced ? "active-button" : "")">Balanced</button>
 			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Detailed)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Detailed ? "active-button" : "")">Detailed</button>
+			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Random)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Random ? "active-button" : "")">Random</button>
 		</fieldset>
 		<fieldset>
 			<legend>Patterns</legend>
@@ -71,6 +74,10 @@
 			<legend>Margin</legend>
 			<input type="range" min="0" max="12" @bind="_settings.Margin" />
 		</fieldset>
+	</div>
+
+	<div id="navigation" class="wrapper" style="margin-top: 50px;">
+		<button @onclick="NavigateToPalette" style="width: 200px; height: 48px; display: flex; align-items: center; justify-content: center;">Color Palette Generator</button>
 	</div>
 </div>
 

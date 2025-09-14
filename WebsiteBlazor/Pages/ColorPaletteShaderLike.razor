@@ -1,0 +1,394 @@
+﻿@page "/palette"
+@using System.Globalization
+@using System.Text.Json
+@inject IJSRuntime JS
+
+<div style="background-color: @(DisplayedSwatches.FirstOrDefault()?.Hex) !important; width: 100%; height: 100vh; padding: 25px;">
+
+    <div class="color-palette" style="max-width:980px;margin:1.5rem auto;padding:1rem;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.06);background-color: @(DisplayedSwatches.LastOrDefault()?.Hex) !important;">
+        <h3>🎛 Palette generator</h3>
+
+        <div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin:0.5rem 0;">
+            <label style="min-width:10rem;">
+                <input type="checkbox" @bind="UseRandomPalette" /> Use Random Palette
+            </label>
+
+            <label>
+                Color count:
+                <input type="range" min="1" max="16" @bind="ColorCount" style="vertical-align:middle; width:180px;" />
+                <strong>@ColorCount</strong>
+            </label>
+
+            <label>
+                Seed:
+                <input type="number" @bind="@Seed" style="width:9rem" />
+            </label>
+
+            <label>
+                Hue mode:
+                <select @bind="HueMode" style="width:12rem;">
+                    @foreach (var m in Enum.GetValues(typeof(HueModes)).Cast<HueModes>())
+                    {
+                        <option value="@m">@m</option>
+                    }
+                </select>
+            </label>
+
+            <button class="btn" @onclick="Generate" style="padding:.35rem .7rem;background:#0078d7;color:#fff;border-radius:6px;border:none;">Generate</button>
+            <button class="btn" @onclick="RandomizeSeed" style="padding:.35rem .7rem;border-radius:6px;border:1px solid #ddd;">Random Seed</button>
+            <button class="btn" @onclick="SavePalette" style="padding:.35rem .7rem;border-radius:6px;background:#16a34a;color:#fff;border:none;">Save</button>
+        </div>
+
+        <details open>
+            <summary style="cursor:pointer; margin-bottom:.5rem;">Random generation parameters</summary>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0.75rem; padding:.5rem 0;">
+                <div style="padding:.5rem; border-radius:6px; background:#fff; border:1px solid #eee;">
+                    <label style="display:block;font-weight:600;">Hue contrast (min / max)</label>
+                    <div style="display:flex; gap:.5rem;">
+                        <input type="number" step="0.01" min="0" max="1" @bind="HueContrastMin" />
+                        <input type="number" step="0.01" min="0" max="1" @bind="HueContrastMax" />
+                    </div>
+                </div>
+
+                <div style="padding:.5rem; border-radius:6px; background:#fff; border:1px solid #eee;">
+                    <label style="display:block;font-weight:600;">Luminance base (min / max)</label>
+                    <div style="display:flex; gap:.5rem;">
+                        <input type="number" step="0.01" min="0" max="1" @bind="LuminanceMin" />
+                        <input type="number" step="0.01" min="0" max="1" @bind="LuminanceMax" />
+                    </div>
+                </div>
+
+                <div style="padding:.5rem; border-radius:6px; background:#fff; border:1px solid #eee;">
+                    <label style="display:block;font-weight:600;">Luminance contrast (min / max)</label>
+                    <div style="display:flex; gap:.5rem;">
+                        <input type="number" step="0.01" min="-1" max="1" @bind="LuminanceContrastMin" />
+                        <input type="number" step="0.01" min="-1" max="1" @bind="LuminanceContrastMax" />
+                    </div>
+                </div>
+
+                <div style="padding:.5rem; border-radius:6px; background:#fff; border:1px solid #eee;">
+                    <label style="display:block;font-weight:600;">Chroma base (min / max)</label>
+                    <div style="display:flex; gap:.5rem;">
+                        <input type="number" step="0.01" min="0" max="1" @bind="ChromaMin" />
+                        <input type="number" step="0.01" min="0" max="1" @bind="ChromaMax" />
+                    </div>
+                </div>
+
+                <div style="padding:.5rem; border-radius:6px; background:#fff; border:1px solid #eee;">
+                    <label style="display:block;font-weight:600;">Chroma contrast (min / max)</label>
+                    <div style="display:flex; gap:.5rem;">
+                        <input type="number" step="0.01" min="-1" max="1" @bind="ChromaContrastMin" />
+                        <input type="number" step="0.01" min="-1" max="1" @bind="ChromaContrastMax" />
+                    </div>
+                </div>
+            </div>
+        </details>
+
+        <details style="margin-top:.5rem;">
+            <summary style="cursor:pointer;">Manual colors (used when random disabled)</summary>
+            <div style="display:flex;flex-wrap:wrap; gap:.5rem; margin-top:.5rem;">
+                @for (int i = 0; i < ManualColors.Length; i++)
+                {
+                    <div style="display:flex; flex-direction:column; align-items:flex-start; gap:.25rem;">
+                        <label style="font-size:.85rem;">Color @(i + 1)</label>
+                        <input type="color" @bind="ManualColors[i]" style="width:56px; height:36px; border-radius:6px; border:none;" />
+                        <div style="font-size:.75rem; opacity:.8;">@ManualColors[i]</div>
+                    </div>
+                }
+            </div>
+        </details>
+
+        <hr />
+
+        <div>
+            <h4>Generated palette</h4>
+            <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+                @foreach (var sw in DisplayedSwatches)
+                {
+                    <div style="width:160px; border-radius:10px; overflow:hidden; border:1px solid rgba(0,0,0,0.4); background:#fff;">
+                        <div style="height:96px; background:@sw.Hex;"></div>
+                        <div style="padding:.45rem;">
+                            <div style="font-weight:600;">@sw.Name</div>
+                            <div style="font-family:monospace; font-size:.82rem; opacity:.85;">@sw.Hex</div>
+                            <div style="font-family:monospace; font-size:.75rem; opacity:.7;">@sw.OklchDisplay</div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <hr />
+
+        <div style="display:flex; gap:1rem; align-items:center; margin-top:.5rem;">
+            <label>Saved palettes</label>
+        </div>
+
+        @if (SavedPalettes.Count == 0)
+        {
+            <div style="opacity:.7; margin-top:.5rem;">No saved palettes yet.</div>
+        }
+        else
+        {
+            <div style="display:flex; flex-direction:column; gap:.5rem; margin-top:.5rem;">
+                @for (int i = 0; i < SavedPalettes.Count; i++)
+                {
+                    var index = i;
+                    <div style="display:flex;align-items:center; gap:.5rem; background:#fff; padding:.45rem; border-radius:8px; border:1px solid #eee;">
+                        <div style="flex:1;">
+                            <strong>@SavedPalettes[index].Name</strong>
+                            <div style="font-size:.85rem; opacity:.8;">@SavedPalettes[index].Swatches.Count colors · seed @SavedPalettes[index].Seed</div>
+                        </div>
+                        <div style="display:flex; gap:.5rem;">
+                            <button class="btn" @onclick="(() => LoadSaved(index))" style="padding:.3rem .6rem;">Load</button>
+                            <button class="btn" @onclick="(() => DeleteSaved(index))" style="padding:.3rem .6rem;background:#ef4444;color:#fff;border:none;">Delete</button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    // ---------- small models ----------
+    class Swatch
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Hex { get; set; } = "#000000";
+        public string OklchDisplay { get; set; } = string.Empty; // L C hue (deg)
+    }
+
+    class SavedPalette
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Seed { get; set; }
+        public bool UseRandom { get; set; }
+        public int ColorCount { get; set; }
+        public List<Swatch> Swatches { get; set; } = new();
+    }
+
+    enum HueModes
+    {
+        Monochromatic = 0,
+        Analogous = 1,
+        Complementary = 2,
+        TriadicComplementary = 3,
+        TetradicComplementary = 4
+    }
+
+    // ---------- UI state and defaults (maps shader uniforms) ----------
+    private bool UseRandomPalette { get; set; } = true;
+    private int ColorCount { get; set; } = 4;
+    private int Seed { get; set; } = 0;
+    private HueModes HueMode { get; set; } = HueModes.Analogous;
+
+    private double HueContrastMin { get; set; } = 0.0;
+    private double HueContrastMax { get; set; } = 1.0;
+
+    private double LuminanceMin { get; set; } = 0.55;
+    private double LuminanceMax { get; set; } = 0.75;
+
+    private double LuminanceContrastMin { get; set; } = 0.0;
+    private double LuminanceContrastMax { get; set; } = 0.18;
+
+    private double ChromaMin { get; set; } = 0.06;
+    private double ChromaMax { get; set; } = 0.14;
+
+    private double ChromaContrastMin { get; set; } = 0.0;
+    private double ChromaContrastMax { get; set; } = 0.02;
+
+    // Manual color slots (up to 8 like shader)
+    private string[] ManualColors = new string[] {
+    "#000000","#1a1a1a","#333333","#4d4d4d","#666666","#999999","#cccccc","#ffffff"
+  };
+
+    private List<Swatch> DisplayedSwatches { get; set; } = new();
+    private List<SavedPalette> SavedPalettes { get; set; } = new();
+
+    private static readonly CultureInfo CI = CultureInfo.InvariantCulture;
+    private static readonly JsonSerializerOptions JsonOpts = new(JsonSerializerDefaults.Web) { WriteIndented = false };
+    private const string StorageKey = "shaderlike_saved_palettes_v1";
+
+    // ---------- lifecycle ----------
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSavedAsync();
+        Generate(); // initial generation
+    }
+
+    // ---------- UI actions ----------
+    private void Generate()
+    {
+        DisplayedSwatches = UseRandomPalette ? GenerateRandomPalette(Seed, ColorCount) : GenerateManualPalette(ColorCount);
+    }
+
+    private void RandomizeSeed()
+    {
+        Seed = Environment.TickCount & 0x7FFFFFFF;
+        Generate();
+    }
+
+    private async Task SavePalette()
+    {
+        var s = new SavedPalette
+            {
+                Name = $"Palette {DateTime.Now:yyyy-MM-dd HH:mm}",
+                Seed = Seed,
+                UseRandom = UseRandomPalette,
+                ColorCount = ColorCount,
+                Swatches = DisplayedSwatches.Select(sw => new Swatch { Name = sw.Name, Hex = sw.Hex, OklchDisplay = sw.OklchDisplay }).ToList()
+            };
+        SavedPalettes.Insert(0, s);
+        await PersistSavedAsync();
+    }
+
+    private void LoadSaved(int idx)
+    {
+        if (idx < 0 || idx >= SavedPalettes.Count) return;
+        var p = SavedPalettes[idx];
+        UseRandomPalette = p.UseRandom;
+        Seed = p.Seed;
+        ColorCount = p.ColorCount;
+        DisplayedSwatches = GenerateRandomPalette(Seed, ColorCount);
+        StateHasChanged();
+    }
+
+    private async Task DeleteSaved(int idx)
+    {
+        if (idx < 0 || idx >= SavedPalettes.Count) return;
+        SavedPalettes.RemoveAt(idx);
+        await PersistSavedAsync();
+    }
+
+    // ---------- storage ----------
+    private async Task LoadSavedAsync()
+    {
+        try
+        {
+            var json = await JS.InvokeAsync<string>("localStorage.getItem", StorageKey);
+            if (!string.IsNullOrWhiteSpace(json))
+            {
+                SavedPalettes = JsonSerializer.Deserialize<List<SavedPalette>>(json) ?? new();
+            }
+        }
+        catch
+        {
+            SavedPalettes = new();
+        }
+    }
+
+    private async Task PersistSavedAsync()
+    {
+        var json = JsonSerializer.Serialize(SavedPalettes, JsonOpts);
+        await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, json);
+    }
+
+    // ---------- Generation logic translated from shader ----------
+    private List<Swatch> GenerateManualPalette(int count)
+    {
+        var outList = new List<Swatch>();
+        for (int i = 0; i < Math.Max(1, count); ++i)
+        {
+            var hex = ManualColors[Math.Min(i, ManualColors.Length - 1)];
+            outList.Add(new Swatch { Name = $"Manual {i + 1}", Hex = hex, OklchDisplay = "n/a" });
+        }
+        return outList;
+    }
+
+    private List<Swatch> GenerateRandomPalette(int seed, int count)
+    {
+        // deterministic rng from seed
+        var rng = new System.Random(seed);
+
+        // sample base random floats similarly to shader:
+        double hueBase = rng.NextDouble() * Math.PI * 2.0; // 0..2π
+        double hueContrast = Lerp(HueContrastMin, HueContrastMax, rng.NextDouble());
+        double Lbase = Lerp(LuminanceMin, LuminanceMax, rng.NextDouble());
+        double luminanceContrast = Lerp(LuminanceContrastMin, LuminanceContrastMax, rng.NextDouble());
+        double Cbase = Lerp(ChromaMin, ChromaMax, rng.NextDouble());
+        double chromaContrast = Lerp(ChromaContrastMin, ChromaContrastMax, rng.NextDouble());
+
+        // hue mode multiplier mapping from shader:
+        double modeMultiplier = HueMode switch
+        {
+            HueModes.Monochromatic => 0.0,
+            HueModes.Analogous => 0.25,
+            HueModes.Complementary => 0.33,
+            HueModes.TriadicComplementary => 0.66,
+            HueModes.TetradicComplementary => 0.75,
+            _ => 0.33
+        };
+
+        var swatches = new List<Swatch>();
+        int n = Math.Max(1, count);
+        for (int i = 0; i < n; ++i)
+        {
+            double linearIterator = (n == 1) ? 0.0 : (double)i / (n - 1);
+
+            double hueOffset = hueContrast * linearIterator * 2.0 * Math.PI + (Math.PI / 4.0);
+            hueOffset *= modeMultiplier;
+
+            double L = Lbase + luminanceContrast * linearIterator;
+            double C = Cbase + chromaContrast * linearIterator;
+            double hue = hueBase + hueOffset;
+
+            // OKLCH to OKLAB: a = C*cos(h), b = C*sin(h)
+            double a = C * Math.Cos(hue);
+            double b = C * Math.Sin(hue);
+
+            // convert to sRGB using OKLAB matrices (same as shader)
+            var (r, g, bl) = OklabToRgbClamped(L, a, b);
+
+            string hex = RgbToHex(r, g, bl);
+
+            // Displayable OKLCH text (L C hue-deg)
+            double hueDeg = (hue * 180.0 / Math.PI) % 360.0;
+            if (hueDeg < 0) hueDeg += 360.0;
+            string oklchDisp = $"L {L:0.000}, C {C:0.000}, h {hueDeg:0.0}°";
+
+            swatches.Add(new Swatch { Name = $"Color {i + 1}", Hex = hex, OklchDisplay = oklchDisp });
+        }
+
+        return swatches;
+    }
+
+    // ---------- color math utilities (OKLAB <-> sRGB) ----------
+    private static double Clamp01(double v) => v < 0 ? 0 : v > 1 ? 1 : v;
+
+    private static string RgbToHex(double r, double g, double b) =>
+      $"#{(int)(Clamp01(r) * 255):X2}{(int)(Clamp01(g) * 255):X2}{(int)(Clamp01(b) * 255):X2}";
+
+    private static double Lerp(double a, double b, double t) => a + (b - a) * t;
+
+    // Convert OKLAB -> sRGB (same matrices as shader)
+    private static (double r, double g, double b) OklabToRgb(double L, double a, double b)
+    {
+        // equations derived from shader constants:
+        double l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+        double m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+        double s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+
+        double l = Cbrt(l_);
+        double m = Cbrt(m_);
+        double s = Cbrt(s_);
+
+        // lab2cone* (l^3,m^3,s^3) then linear->sRGB mapping (same as shader)
+        double r = +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+        double g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+        double bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+
+        // linear -> sRGB
+        return (LinearToSrgb(r), LinearToSrgb(g), LinearToSrgb(bl));
+    }
+
+    private static (double r, double g, double b) OklabToRgbClamped(double L, double a, double b)
+    {
+        var (r, g, bl) = OklabToRgb(L, a, b);
+        return (Clamp01(r), Clamp01(g), Clamp01(bl));
+    }
+
+    private static double Cbrt(double x) => x >= 0 ? Math.Pow(x, 1.0 / 3.0) : -Math.Pow(-x, 1.0 / 3.0);
+
+    private static double LinearToSrgb(double c) =>
+      c <= 0.0031308 ? 12.92 * c : 1.055 * Math.Pow(c, 1.0 / 2.4) - 0.055;
+}
