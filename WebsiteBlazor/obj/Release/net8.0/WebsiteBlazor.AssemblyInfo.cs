@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("WebsiteBlazor")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5cf891afc18253235e969e3a86961d6394cec405")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+1d8a29f8d8ddf2945e5970d94e997f3945f01c7f")]
 [assembly: System.Reflection.AssemblyProductAttribute("WebsiteBlazor")]
 [assembly: System.Reflection.AssemblyTitleAttribute("WebsiteBlazor")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

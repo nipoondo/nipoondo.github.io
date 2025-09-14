@@ -33,10 +33,10 @@ namespace AutoSpriteCreator
 
         public static Image<Rgba32> GenerateMonster(int width, int height, Settings settings)
         {
-            int margin = Math.Max(3, width / 12);
+            //int margin = Math.Max(3, width / 12);
 
             // 1) Build mask (all geometry lives here)
-            bool[,] mask = MaskBuilder.BuildMask(width, height, margin);
+            bool[,] mask = MaskBuilder.BuildMask(settings);
 
             // 2) Create Image<Rgba32> and palette
             Image<Rgba32> bmp = new Image<Rgba32>(width, height);
@@ -47,23 +47,21 @@ namespace AutoSpriteCreator
             Rgba32 patternColor = ColorUtils.Darken(baseColor, 0.55f);
             Rgba32 outlineColor = ColorUtils.Darken(baseColor, 0.34f);
 
-            // 3) Paint base body from mask
-            //for (int x = 0; x < width; x++)
-            //    for (int y = 0; y < height; y++)
-            //        if (mask[x, y]) PixelUtils.SafeSetPixel(bmp, x, y, baseColor);
-
             // 3) Paint base body from mask using noise-driven palette (new)
             FeatureDrawer.ApplyNoisePalette(bmp, mask, baseColor, accentColor, nColors: 6, outline: true);
 
 
             // 4) Draw internal patterns BEFORE eyes & mouth so they appear behind those features
-            FeatureDrawer.AddInternalPatterns(bmp, mask, patternColor);
+            if (settings.DrawPatterns)
+            {
+                FeatureDrawer.AddInternalPatterns(bmp, mask, patternColor);
+            }
 
             // 5) Draw features (eyes, mouth, limbs, appendages) on top of patterns
             FeatureDrawer.AddEyes(bmp, mask, accentColor);
             FeatureDrawer.AddMouth(bmp, mask);
-            FeatureDrawer.AddAnchoredLimbs(bmp, mask, accentColor, margin);
-            FeatureDrawer.AddAppendages(bmp, mask, accentColor, margin);
+            FeatureDrawer.AddAnchoredLimbs(bmp, mask, accentColor, settings.Margin);
+            FeatureDrawer.AddAppendages(bmp, mask, accentColor, settings.Margin);
 
             // 6) Outline & shading (topmost)
             if (!settings.DrawOutline)

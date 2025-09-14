@@ -33,7 +33,7 @@
 	}
 </style>
 
-<div style="width: 100%; height: 100vh; background-color: #302b22; display: flex; flex-direction: column; gap: 20px; align-items: center; padding: 25px;">
+<div style="width: 100%; background-color: #302b22; display: flex; flex-direction: column; gap: 20px; align-items: center; padding: 25px;">
 	<div id="image" class="wrapper" style="min-height: 420px;">
 		@if (!string.IsNullOrEmpty(_sprite))
 		{
@@ -55,6 +55,21 @@
 			<legend>Outline</legend>
 			<button @onclick="(() => _settings.DrawOutline = false)" class="@(_settings.DrawOutline == false ? "active-button" : "")">Colored</button>
 			<button @onclick="(() => _settings.DrawOutline = true)" class="@(_settings.DrawOutline == true ? "active-button" : "")">Black</button>
+		</fieldset>
+		<fieldset>
+			<legend>Style</legend>
+			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Blobby)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Blobby ? "active-button" : "")">Blobby</button>
+			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Balanced)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Balanced ? "active-button" : "")">Balanced</button>
+			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Detailed)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Detailed ? "active-button" : "")">Detailed</button>
+		</fieldset>
+		<fieldset>
+			<legend>Patterns</legend>
+			<button @onclick="(() => _settings.DrawPatterns = false)" class="@(_settings.DrawPatterns == false ? "active-button" : "")">No</button>
+			<button @onclick="(() => _settings.DrawPatterns = true)" class="@(_settings.DrawPatterns == true ? "active-button" : "")">Yes</button>
+		</fieldset>
+		<fieldset>
+			<legend>Margin</legend>
+			<input type="range" min="0" max="12" @bind="_settings.Margin" />
 		</fieldset>
 	</div>
 </div>
