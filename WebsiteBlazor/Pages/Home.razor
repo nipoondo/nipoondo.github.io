@@ -54,19 +54,26 @@
 			<button @onclick="(() => _settings.Dimension = 128)" class="@(_settings.Dimension == 128 ? "active-button" : "")">128px</button>
 		</fieldset>
 		<fieldset>
-			<legend>Outline</legend>
-			<button @onclick="(() => _settings.DrawOutline = false)" class="@(_settings.DrawOutline == false ? "active-button" : "")">Colored</button>
-			<button @onclick="(() => _settings.DrawOutline = true)" class="@(_settings.DrawOutline == true ? "active-button" : "")">Black</button>
-		</fieldset>
-		<fieldset>
-			<legend>Style</legend>
+			<legend>Form</legend>
 			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Blobby)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Blobby ? "active-button" : "")">Blobby</button>
 			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Balanced)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Balanced ? "active-button" : "")">Balanced</button>
 			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Detailed)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Detailed ? "active-button" : "")">Detailed</button>
 			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Random)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Random ? "active-button" : "")">Random</button>
 		</fieldset>
 		<fieldset>
-			<legend>Patterns</legend>
+			<legend>Colors</legend>
+			<button @onclick="(() => _settings.ColorStyle = Classes.ColorStyle.Harmonious)" class="@(_settings.ColorStyle == Classes.ColorStyle.Harmonious ? "active-button" : "")">Harmonious</button>
+			<button @onclick="(() => _settings.ColorStyle = Classes.ColorStyle.RandomAccent)" class="@(_settings.ColorStyle == Classes.ColorStyle.RandomAccent ? "active-button" : "")">Random Accent</button>
+			<button @onclick="(() => _settings.ColorStyle = Classes.ColorStyle.RandomDarken)" class="@(_settings.ColorStyle == Classes.ColorStyle.RandomDarken ? "active-button" : "")">+ Random Patterns</button>
+			<button @onclick="(() => _settings.ColorStyle = Classes.ColorStyle.RandomOutline)" class="@(_settings.ColorStyle == Classes.ColorStyle.RandomOutline ? "active-button" : "")">+ Random Outline</button>
+		</fieldset>
+		<fieldset>
+			<legend>Generator Type</legend>
+			<button @onclick="(() => _settings.Generator = 0)" class="@(_settings.Generator == 0 ? "active-button" : "")">Old</button>
+			<button @onclick="(() => _settings.Generator = 1)" class="@(_settings.Generator == 1 ? "active-button" : "")">New (Animated)</button>
+		</fieldset>
+		<fieldset>
+			<legend>Patterns (random lines, currently ugly)</legend>
 			<button @onclick="(() => _settings.DrawPatterns = false)" class="@(_settings.DrawPatterns == false ? "active-button" : "")">No</button>
 			<button @onclick="(() => _settings.DrawPatterns = true)" class="@(_settings.DrawPatterns == true ? "active-button" : "")">Yes</button>
 		</fieldset>

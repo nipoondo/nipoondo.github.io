@@ -9,6 +9,9 @@ using SixLabors.ImageSharp;
 using static System.Net.Mime.MediaTypeNames;
 using SixLabors.ImageSharp.Processing;
 using WebsiteBlazor.Classes;
+using System.Runtime;
+using System.Threading;
+using SixLabors.ImageSharp.Formats.Gif;
 
 namespace AutoSpriteCreator
 {
@@ -21,15 +24,79 @@ namespace AutoSpriteCreator
     {
         public static string MonsterMain(Settings settings)
         {
-            Image<Rgba32> monster = GenerateMonster(settings.Dimension, settings.Dimension, settings);
+            // config: frames and delay (ms per frame) — tune or move into Settings
+            int frameCount = 8;
+            int frameDelayMs = 80; // ms per frame; GIF uses hundredths of a second, so 80ms -> frameDelay = 8
 
-            using (var ms = new MemoryStream())
+            if (settings.Generator == 0)
             {
-                monster.SaveAsPng(ms);
-                var bytes = ms.ToArray();
-                return $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
+                Image<Rgba32> monster = GenerateMonster(settings.Dimension, settings.Dimension, settings);
+
+                using (var ms = new MemoryStream())
+                {
+                    monster.SaveAsPng(ms);
+                    var bytes = ms.ToArray();
+                    return $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
+                }
+            }
+            else
+            {
+                // Build layered parts then frames
+                var parts = MonsterSpriteFactory.GenerateParts(settings);
+
+                // build animation frames (layer-composed images)
+                var frames = MonsterSpriteFactory.GenerateSimpleAnimation(parts, frameCount: frameCount, intensity: 1.0f);
+
+                // If only one frame, return it as PNG (transparent)
+                if (frames.Count == 1)
+                {
+                    using (var ms = new MemoryStream())
+                    {
+                        frames[0].SaveAsPng(ms);
+                        var bytes = ms.ToArray();
+
+                        // Dispose frames
+                        foreach (var f in frames) f.Dispose();
+
+                        return $"data:image/png;base64,{Convert.ToBase64String(bytes)}";
+                    }
+                }
+
+                using (var animated = frames[0].Clone())
+                {
+                    // infinite loop
+                    var rootMeta = animated.Metadata.GetGifMetadata();
+                    rootMeta.RepeatCount = 0;
+
+                    // convert ms delay to GIF hundredths of seconds (min 1)
+                    ushort gifDelay = (ushort)Math.Max(1, frameDelayMs / 10);
+
+                    // set for first frame
+                    animated.Frames.RootFrame.Metadata.GetGifMetadata().FrameDelay = gifDelay;
+                    animated.Frames.RootFrame.Metadata.GetGifMetadata().DisposalMethod = GifDisposalMethod.RestoreToBackground;
+
+                    // add remaining frames and set metadata for each
+                    for (int i = 1; i < frames.Count; i++)
+                    {
+                        animated.Frames.AddFrame(frames[i].Frames.RootFrame);
+                        var meta = animated.Frames[i].Metadata.GetGifMetadata();
+                        meta.FrameDelay = gifDelay;
+                        meta.DisposalMethod = GifDisposalMethod.RestoreToBackground;
+                    }
+
+                    // dispose per-frame images
+                    foreach (var f in frames) f.Dispose();
+
+                    using (var ms = new MemoryStream())
+                    {
+                        animated.SaveAsGif(ms);
+                        var bytes = ms.ToArray();
+                        return $"data:image/gif;base64,{Convert.ToBase64String(bytes)}";
+                    }
+                }
             }
         }
+
 
         public static Image<Rgba32> GenerateMonster(int width, int height, Settings settings)
         {
@@ -64,10 +131,8 @@ namespace AutoSpriteCreator
             FeatureDrawer.AddAppendages(bmp, mask, accentColor, settings.Margin);
 
             // 6) Outline & shading (topmost)
-            if (!settings.DrawOutline)
-            {
-                FeatureDrawer.DrawMaskOutline(bmp, mask, outlineColor);
-            }
+            FeatureDrawer.DrawMaskOutline(bmp, mask, outlineColor);
+
             //FeatureDrawer.ApplySimpleShading(bmp, mask);
 
             return bmp;

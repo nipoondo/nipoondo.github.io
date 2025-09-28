@@ -1,217 +1,223 @@
-﻿using System;
+﻿// MaskBuilder.cs - drop this into your AutoSpriteCreator project (replace existing file)
+using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using WebsiteBlazor.Classes;
 
 namespace AutoSpriteCreator
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Drawing;
-    using WebsiteBlazor.Classes;
-
     public static class MaskBuilder
     {
+        // Backwards-compatible: returns the combined mask (body + head) like your original API.
         public static bool[,] BuildMask(Settings settings)
         {
-            bool[,] bodyMask = new bool[settings.Dimension, settings.Dimension];
-            bool[,] headMask = new bool[settings.Dimension, settings.Dimension];
+            BuildProcessedMasks(settings, out bool[,] bodyMask, out bool[,] headMask);
+
+            bool[,] result = new bool[settings.Dimension, settings.Dimension];
+            for (int x = 0; x < settings.Dimension; x++)
+                for (int y = 0; y < settings.Dimension; y++)
+                    result[x, y] = bodyMask[x, y] || headMask[x, y];
+
+            return result;
+        }
+
+        // New: returns processed masks split into body and head so features/animations can use them separately.
+        public static void BuildProcessedMasks(Settings settings, out bool[,] bodyMask, out bool[,] headMask)
+        {
+            // 1) build base shapes separately (these are deterministic-ish and stable)
+            bool[,] baseBody = new bool[settings.Dimension, settings.Dimension];
+            bool[,] baseHead = new bool[settings.Dimension, settings.Dimension];
 
             int archetype = RNG.Rand.Next(8);
             int bodyStartY = settings.Dimension / 3;
             int bodyHeight = settings.Dimension - bodyStartY;
             int headHeight = bodyStartY;
 
-            // Build body and head separately
-            CreateBody(bodyMask, archetype, settings.Dimension, settings.Dimension, bodyStartY, bodyHeight, settings.Margin);
-            CreateHead(headMask, archetype, settings.Dimension, settings.Dimension, bodyStartY, headHeight, settings.Margin);
+            CreateBody(baseBody, archetype, settings.Dimension, settings.Dimension, bodyStartY, bodyHeight, settings.Margin);
+            CreateHead(baseHead, archetype, settings.Dimension, settings.Dimension, bodyStartY, headHeight, settings.Margin);
 
-            // Strong, varied body processing (keeps head intact)
-            bool[,] variedBody = GenerateVariedBody(bodyMask, bodyStartY, bodyHeight, settings.Margin, settings);
+            // 2) produce a varied body from the base body (noise, segments, lobes, spikes, holes)
+            bool[,] variedBody = GenerateVariedBody(baseBody, bodyStartY, bodyHeight, settings);
 
-            // Recombine, head guaranteed intact
-            bool[,] mask = new bool[settings.Dimension, settings.Dimension];
+            // 3) recombine with processed extras and the preserved head region
+            // we apply a tiny perimeter noise and cleanup again for painterly niceness
+            bool[,] combined = new bool[settings.Dimension, settings.Dimension];
             for (int x = 0; x < settings.Dimension; x++)
                 for (int y = 0; y < settings.Dimension; y++)
-                    mask[x, y] = variedBody[x, y] || headMask[x, y];
+                    combined[x, y] = variedBody[x, y] || baseHead[x, y];
 
-            // Small perimeter noise and cleanup (keeps that painterly detail)
-            AddPerimeterNoise(mask, 0.12, 0.06);
-            MorphologicalClean(mask, 1);
+            AddPerimeterNoise(combined, 0.10, 0.05);
+            MorphologicalClean(combined, 1);
+            combined = ApplyOrganicSymmetry(combined, 0.18, settings.Margin);
+            combined = CloseMask(combined, 1);
+            EnforceMargin(combined, settings.Margin);
 
-            // Organic symmetry and closing/healing
-            mask = ApplyOrganicSymmetry(mask, 0.18, settings.Margin);
-            mask = CloseMask(mask, 1);
-
-            // Safety margin strip
-            EnforceMargin(mask, settings.Margin);
-
-            return mask;
+            // 4) split into head vs body masks: prefer original head pixels to ensure stable eyes/mouth
+            bodyMask = new bool[settings.Dimension, settings.Dimension];
+            headMask = new bool[settings.Dimension, settings.Dimension];
+            for (int x = 0; x < settings.Dimension; x++)
+                for (int y = 0; y < settings.Dimension; y++)
+                {
+                    if (!combined[x, y]) continue;
+                    if (baseHead[x, y]) headMask[x, y] = true;
+                    else bodyMask[x, y] = true;
+                }
         }
 
-        // ------------------ Core creative pipeline ------------------
-        static bool[,] GenerateVariedBody(bool[,] baseBody, int bodyStartY, int bodyHeight, int margin, Settings settings)
+        // ------------------- Core varied body generator -------------------
+        static bool[,] GenerateVariedBody(bool[,] baseBody, int bodyStartY, int bodyHeight, Settings settings)
         {
             int w = baseBody.GetLength(0), h = baseBody.GetLength(1);
 
-            // 1) Signed distance field of the base body
-            float[,] distToBG = DistanceTransformInverse(baseBody); // inside >0
-            float[,] distToFG = DistanceTransform(baseBody);        // outside >0
+            // signed distance field (inside positive)
+            float[,] distToBG = DistanceTransformInverse(baseBody);
+            float[,] distToFG = DistanceTransform(baseBody);
             float[,] signed = new float[w, h];
-            for (int x = 0; x < w; x++)
-                for (int y = 0; y < h; y++)
-                    signed[x, y] = distToBG[x, y] - distToFG[x, y];
+            for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) signed[x, y] = distToBG[x, y] - distToFG[x, y];
 
-            // We'll work on a mask starting from an FBM-displaced signed field
-            // Parameters that strongly affect style — editable!
+            var seed = RNG.Rand.Next();
+            NoisePresets.ComputeForWidth(w, settings.NoiseStyle, out float baseNoiseScale, out float amplitudePx, out int octaves, out float persistence, seed: seed);
+            int targetCells = RNG.Rand.Next(Math.Max(1, w / 24), Math.Max(2, w / 8)); // varied cell count
 
-            NoisePresets.ComputeForWidth(settings.Dimension, settings.NoiseStyle, out float baseNoiseScale, out float amplitudePx, out int octaves, out float persistence);
-
-            //float baseNoiseScale = 0.025f + (float)RNG.Rand.NextDouble() * 0.045f; // controls feature size
-            //float amplitudePx = Math.Max(2f, (float)w * (0.05f + (float)RNG.Rand.NextDouble() * 0.15f)); // silhouette displacement
-            //int octaves = RNG.Rand.Next(2, 5);
-            //float persistence = 0.48f + (float)RNG.Rand.NextDouble() * 0.14f;
+            // Ensure consistent effect across octaves
+            float totalAmp = 0; float a = 1f;
+            for (int i = 0; i < octaves; i++) { totalAmp += a; a *= persistence; }
+            if (totalAmp <= 0) totalAmp = 1;
 
             bool[,] mask = new bool[w, h];
 
-            // 2) Perimeter displacement with a vertical falloff so the head stays safe
-            // falloff: 0 at above/around head, 1 in lower body
+            // 1) Perimeter displacement with vertical falloff: protect the neck/head region
             for (int x = 0; x < w; x++)
             {
                 for (int y = 0; y < h; y++)
                 {
                     float v = (y - bodyStartY) / (float)Math.Max(1, bodyHeight);
-                    float falloff = Clamp01(SmoothStep(Clamp01(v))); // smoother transition
-                    float fbm = SampleFbm(x * baseNoiseScale, y * baseNoiseScale, octaves, persistence, RNG.Rand.Next());
-                    // Normalize rough [-1,1] sampling of our fBm approx (value noise maps to approx [-1,1])
+                    float falloff = Clamp01(SmoothStep(Clamp01(v))); // 0 near head, 1 in lower body
+
+                    float fbm = SampleFbm(x * baseNoiseScale, y * baseNoiseScale, octaves, persistence, seed);
+                    // value-noise based fbm roughly in [-1..1]; normalize by totalAmp
+                    fbm /= totalAmp;
                     float displacement = fbm * amplitudePx * falloff;
+
                     float newSigned = signed[x, y] + displacement;
                     mask[x, y] = newSigned > 0f;
                 }
             }
 
-            // 3) Add optional segmented variants (sausage / armor plates)
-            if (RNG.Rand.NextDouble() < 0.45)
+            // 2) segmented variants (sausage / armor plates)
+            if (RNG.Rand.NextDouble() < 0.5)
             {
                 bool[,] seg = new bool[w, h];
                 int segments = RNG.Rand.Next(2, 6);
                 int cxBase = w / 2 + RNG.Rand.Next(-3, 4);
                 for (int i = 0; i < segments; i++)
                 {
-                    // place segments along the body axis with jitter and varied radii
                     double t = segments == 1 ? 0.5 : (double)i / (segments - 1);
                     int cy = bodyStartY + (int)(t * bodyHeight) + RNG.Rand.Next(-3, 4);
-                    int rx = Math.Max(2, (int)(w * (0.18 + 0.18 * (0.5 + RNG.Rand.NextDouble() * (1.0 - Math.Abs(0.5 - t))))));
-                    int ry = Math.Max(2, (int)(bodyHeight * (0.12 + 0.18 * RNG.Rand.NextDouble())));
-                    FillEllipseMask(seg, cxBase + RNG.Rand.Next(-6, 7), cy, rx, ry, margin);
+                    int rx = Math.Max(2, (int)(w * (0.14 + 0.24 * (0.5 + RNG.Rand.NextDouble() * (1.0 - Math.Abs(0.5 - t))))));
+                    int ry = Math.Max(2, (int)(bodyHeight * (0.10 + 0.18 * RNG.Rand.NextDouble())));
+                    FillEllipseMask(seg, cxBase + RNG.Rand.Next(-6, 7), cy, rx, ry, settings.Margin);
                 }
 
-                if (RNG.Rand.NextDouble() < 0.55)
+                if (RNG.Rand.NextDouble() < 0.6)
                 {
                     // union for bulgy segmented look
                     for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) mask[x, y] = mask[x, y] || seg[x, y];
                 }
                 else
                 {
-                    // replace (pure segmented silhouette)
+                    // replace
                     mask = seg;
                 }
             }
 
-            // 4) Extra blobs / lobes: additive or subtractive
-            int blobCount = RNG.Rand.Next(0, 5);
+            // 3) add / subtract lobes (extra bellies, side pouches)
+            int blobCount = RNG.Rand.Next(0, 4);
             var bbox = GetBoundingBox(mask);
-            // If mask is empty fallback to baseBody bbox
             if (bbox.Width <= 0 || bbox.Height <= 0) bbox = GetBoundingBox(baseBody);
 
             for (int b = 0; b < blobCount; b++)
             {
-                int bx = RNG.Rand.Next(Math.Max(margin, bbox.Left - 4), Math.Min(w - margin, bbox.Right + 4));
-                int by = RNG.Rand.Next(Math.Max(margin, bbox.Top - 4), Math.Min(h - margin, bbox.Bottom + 4));
+                int bx = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Left - 4), Math.Min(w - settings.Margin, bbox.Right + 4));
+                int by = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Top - 4), Math.Min(h - settings.Margin, bbox.Bottom + 4));
                 int brx = Math.Max(1, RNG.Rand.Next(Math.Max(2, w / 24), Math.Max(2, w / 8)));
                 int bry = Math.Max(1, RNG.Rand.Next(Math.Max(2, h / 32), Math.Max(2, h / 10)));
                 bool[,] blob = new bool[w, h];
-                FillEllipseMask(blob, bx, by, brx, bry, margin);
+                FillEllipseMask(blob, bx, by, brx, bry, settings.Margin);
 
-                if (RNG.Rand.NextDouble() < 0.68)
+                if (RNG.Rand.NextDouble() < 0.72)
                 {
-                    // union (extra lobe)
                     for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) mask[x, y] = mask[x, y] || blob[x, y];
                 }
                 else
                 {
-                    // subtract (pouch / notch)
                     for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) if (blob[x, y]) mask[x, y] = false;
                 }
             }
 
-            // 5) Perforations (holes)
-            if (RNG.Rand.NextDouble() < 0.5)
+            // 4) perforations (holes)
+            if (RNG.Rand.NextDouble() < 0.45)
             {
                 int holes = RNG.Rand.Next(0, 4);
                 for (int i = 0; i < holes; i++)
                 {
-                    int hx = RNG.Rand.Next(Math.Max(margin, bbox.Left), Math.Min(w - margin, bbox.Right));
-                    int hy = RNG.Rand.Next(Math.Max(margin, bbox.Top), Math.Min(h - margin, bbox.Bottom));
+                    int hx = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Left), Math.Min(w - settings.Margin, bbox.Right));
+                    int hy = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Top), Math.Min(h - settings.Margin, bbox.Bottom));
                     int hrx = Math.Max(1, RNG.Rand.Next(1, Math.Max(2, w / 18)));
                     int hry = Math.Max(1, RNG.Rand.Next(1, Math.Max(2, h / 20)));
                     bool[,] hole = new bool[w, h];
-                    FillEllipseMask(hole, hx, hy, hrx, hry, margin);
+                    FillEllipseMask(hole, hx, hy, hrx, hry, settings.Margin);
                     for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) if (hole[x, y]) mask[x, y] = false;
                 }
             }
 
-            // 6) Spikes / protrusions along perimeter
+            // 5) spikes / protrusions along perimeter
             if (RNG.Rand.NextDouble() < 0.55)
             {
                 List<Point> edges = new List<Point>();
                 for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) if (IsEdgeMask(mask, x, y)) edges.Add(new Point(x, y));
-                int spikeMax = Math.Max(0, Math.Min(12, edges.Count / 8 + RNG.Rand.Next(0, 5)));
-                for (int s = 0; s < spikeMax; s++)
+                if (edges.Count > 0)
                 {
-                    var p = edges[RNG.Rand.Next(edges.Count)];
-                    int px = p.X, py = p.Y;
-                    // gradient of signed field (simple finite diff)
-                    float gx = SampleSafe(signed, px + 1, py) - SampleSafe(signed, px - 1, py);
-                    float gy = SampleSafe(signed, px, py + 1) - SampleSafe(signed, px, py - 1);
-                    float len = (float)Math.Sqrt(gx * gx + gy * gy);
-                    float nx, ny;
-                    if (len > 1e-6f) { nx = gx / len; ny = gy / len; }
-                    else { nx = px - w / 2f; ny = py - (bodyStartY + bodyHeight / 2f); float nl = (float)Math.Sqrt(nx * nx + ny * ny) + 1e-6f; nx /= nl; ny /= nl; }
-
-                    int spikeLen = RNG.Rand.Next(Math.Max(2, w / 40), Math.Max(3, w / 18));
-                    for (int l = 1; l <= spikeLen; l++)
+                    int spikeMax = Math.Max(0, Math.Min(12, edges.Count / 8 + RNG.Rand.Next(0, 5)));
+                    for (int s = 0; s < spikeMax; s++)
                     {
-                        int sx = px + (int)Math.Round(nx * l);
-                        int sy = py + (int)Math.Round(ny * l);
-                        // small width for triangular feel
-                        int halfW = Math.Max(0, (int)Math.Round((1.0 - (double)l / spikeLen) * (1 + RNG.Rand.Next(0, 2))));
-                        for (int wx = -halfW; wx <= halfW; wx++)
-                            for (int wy = -halfW; wy <= halfW; wy++)
-                            {
-                                int ax = sx + wx, ay = sy + wy;
-                                if (ax >= 0 && ay >= 0 && ax < w && ay < h && ax >= margin && ay >= margin && ax < w - margin && ay < h - margin)
-                                    mask[ax, ay] = true;
-                            }
+                        var p = edges[RNG.Rand.Next(edges.Count)];
+                        int px = p.X, py = p.Y;
+                        // gradient approx on signed field
+                        float gx = SampleSafe(signed, px + 1, py) - SampleSafe(signed, px - 1, py);
+                        float gy = SampleSafe(signed, px, py + 1) - SampleSafe(signed, px, py - 1);
+                        float len = (float)Math.Sqrt(gx * gx + gy * gy);
+                        float nx, ny;
+                        if (len > 1e-6f) { nx = gx / len; ny = gy / len; }
+                        else { nx = px - w / 2f; ny = py - (bodyStartY + bodyHeight / 2f); float nl = (float)Math.Sqrt(nx * nx + ny * ny) + 1e-6f; nx /= nl; ny /= nl; }
+
+                        int spikeLen = RNG.Rand.Next(Math.Max(2, w / 40), Math.Max(3, w / 18));
+                        for (int l = 1; l <= spikeLen; l++)
+                        {
+                            int sx = px + (int)Math.Round(nx * l);
+                            int sy = py + (int)Math.Round(ny * l);
+                            int halfW = Math.Max(0, (int)Math.Round((1.0 - (double)l / spikeLen) * (1 + RNG.Rand.Next(0, 2))));
+                            for (int wx = -halfW; wx <= halfW; wx++)
+                                for (int wy = -halfW; wy <= halfW; wy++)
+                                {
+                                    int ax = sx + wx, ay = sy + wy;
+                                    if (ax >= 0 && ay >= 0 && ax < w && ay < h && ax >= settings.Margin && ay >= settings.Margin && ax < w - settings.Margin && ay < h - settings.Margin)
+                                        mask[ax, ay] = true;
+                                }
+                        }
                     }
                 }
             }
 
-            // 7) Final morphological cleanup to make shapes readable at small sprite sizes
+            // 6) cleanup and small morphology for readability at small sprite sizes
             MorphologicalClean(mask, 1);
-
-            // Slight random dilation/erosion for variety
             if (RNG.Rand.NextDouble() < 0.5) mask = Dilate(mask);
             if (RNG.Rand.NextDouble() < 0.5) mask = Erode(mask);
 
             return mask;
         }
 
-        // --------------------- Utilities and helpers (kept / adapted) ---------------------
-
-        // Create body - original logic (unchanged)
+        // ----------------- Base shape builders (unchanged style) -----------------
         static void CreateBody(bool[,] mask, int archetype, int width, int height, int bodyStartY, int bodyHeight, int margin)
         {
             int cx = width / 2 + RNG.Rand.Next(-4, 5);
@@ -258,7 +264,6 @@ namespace AutoSpriteCreator
             }
         }
 
-        // Create head - original logic (unchanged)
         static void CreateHead(bool[,] mask, int archetype, int width, int height, int bodyStartY, int headHeight, int margin)
         {
             int headCx = width / 2 + RNG.Rand.Next(-3, 4);
@@ -283,7 +288,9 @@ namespace AutoSpriteCreator
             }
         }
 
-        // margin-aware ellipse (unchanged)
+        // ------------------- Low-level helpers & morphology -------------------
+
+        // margin-aware ellipse
         static void FillEllipseMask(bool[,] mask, int cx, int cy, int rx, int ry, int margin)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
@@ -390,7 +397,6 @@ namespace AutoSpriteCreator
             }
         }
 
-        // Mirror left->right with jitter (unchanged)
         static bool[,] ApplyOrganicSymmetry(bool[,] mask, double jitterProb, int margin)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
@@ -417,7 +423,7 @@ namespace AutoSpriteCreator
                     if (ny < margin || ny >= h - margin) continue;
                     if (mx < margin || mx >= w - margin) continue;
 
-                    if (RNG.Rand.NextDouble() < jitterProb * 0.18) continue;
+                    if (RNG.Rand.NextDouble() < jitterProb * 0.18) continue; // drop occasionally
 
                     result[mx, ny] = true;
                 }
@@ -443,7 +449,6 @@ namespace AutoSpriteCreator
             return result;
         }
 
-        // Closing (unchanged)
         static bool[,] CloseMask(bool[,] mask, int iterations)
         {
             bool[,] current = mask;
@@ -509,6 +514,7 @@ namespace AutoSpriteCreator
                     dist[x, y] = binary[x, y] ? 0f : INF;
 
             for (int y = 0; y < h; y++)
+            {
                 for (int x = 0; x < w; x++)
                 {
                     float v = dist[x, y];
@@ -518,8 +524,10 @@ namespace AutoSpriteCreator
                     if (x + 1 < w && y > 0) v = Math.Min(v, dist[x + 1, y - 1] + 1.41421356f);
                     dist[x, y] = v;
                 }
+            }
 
             for (int y = h - 1; y >= 0; y--)
+            {
                 for (int x = w - 1; x >= 0; x--)
                 {
                     float v = dist[x, y];
@@ -529,6 +537,7 @@ namespace AutoSpriteCreator
                     if (x > 0 && y + 1 < h) v = Math.Min(v, dist[x - 1, y + 1] + 1.41421356f);
                     dist[x, y] = v;
                 }
+            }
 
             return dist;
         }
@@ -572,7 +581,9 @@ namespace AutoSpriteCreator
 
         static int FastFloor(float v) { return (int)Math.Floor(v); }
         static float Lerp(float a, float b, float t) => a + (b - a) * t;
-        static float SmoothStep(float t) => t * t * t * (t * (t * 6 - 15) + 10);
+        static float SmoothStep(float t) => t * t * t * (t * (t * 6 - 15) + 10); // 6t^5 - 15t^4 + 10t^3
+
+        // deterministic integer hash -> [-1,1]
         static float HashFloat(int x, int y, int seed)
         {
             unchecked
@@ -584,7 +595,7 @@ namespace AutoSpriteCreator
             }
         }
 
-        // ------------------ Small helpers ------------------
+        // ------------------ little helpers ------------------
         static Rectangle GetBoundingBox(bool[,] mask)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
@@ -602,8 +613,5 @@ namespace AutoSpriteCreator
         }
 
         static float Clamp01(float v) { if (v < 0f) return 0f; if (v > 1f) return 1f; return v; }
-
     }
-
-
 }
