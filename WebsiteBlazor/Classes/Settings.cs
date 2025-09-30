@@ -8,6 +8,11 @@
         public NoiseStyle NoiseStyle = NoiseStyle.Random;
         public int Generator = 1;
         public ColorStyle ColorStyle = ColorStyle.Harmonious;
+        public int FrameCount = 8;
+        public float AnimationIntesity = 1f;
+        public int FrameDelayInMs = 80;
+        public bool UseSeed = false;
+        public int Seed = 27011998;
     }
 
     public enum NoiseStyle { Blobby, Balanced, Detailed, Random }

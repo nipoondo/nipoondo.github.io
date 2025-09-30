@@ -10,7 +10,6 @@ namespace WebsiteBlazor.Classes
         public Image<Rgba32> Body { get; set; }
         public Image<Rgba32> Head { get; set; }
         public Image<Rgba32> Limbs { get; set; }
-        public Image<Rgba32> Appendages { get; set; }
 
         // anchors in pixel coordinates (System.Drawing.Point)
         public Dictionary<string, SixLabors.ImageSharp.Point> Anchors { get; set; } = new Dictionary<string, SixLabors.ImageSharp.Point>();
@@ -64,11 +63,6 @@ namespace WebsiteBlazor.Classes
             limbImg.Mutate(ctx => ctx.BackgroundColor(new Rgba32(0, 0, 0, 0)));
             FeatureDrawer.AddAnchoredLimbs(limbImg, bodyMask, accentColor, margin);
 
-            // appendages (tails, tentacles, etc.)
-            var appendImg = new Image<Rgba32>(width, height);
-            appendImg.Mutate(ctx => ctx.BackgroundColor(new Rgba32(0, 0, 0, 0)));
-            FeatureDrawer.AddAppendages(appendImg, bodyMask, accentColor, margin);
-
             // anchors (simple, robust heuristics)
             var anchors = new Dictionary<string, SixLabors.ImageSharp.Point>();
             anchors["head"] = Centroid(headMask);      // pivot for head animations
@@ -82,54 +76,120 @@ namespace WebsiteBlazor.Classes
                 Body = bodyImg,
                 Head = headImg,
                 Limbs = limbImg,
-                Appendages = appendImg,
                 Anchors = anchors,
                 BodyMask = bodyMask,
                 HeadMask = headMask
             };
         }
 
-        /// <summary>
-        /// Cheap, fast layer-based animation generator.
-        /// Produces 'frames' images where layers are composed with small translations to simulate walk/bob.
-        /// </summary>
+
+
         public static List<Image<Rgba32>> GenerateSimpleAnimation(MonsterSpriteParts parts, int frameCount, float intensity = 1f)
         {
             int w = parts.Body.Width;
             int h = parts.Body.Height;
             var frames = new List<Image<Rgba32>>(frameCount);
 
-            // scale amplitudes with width so animations feel proportional
-            int headBobPx = Math.Max(1, w / 32);
-            int bodyWobblePx = Math.Max(1, w / 48);
-            int limbSwayPx = Math.Max(1, w / 40);
+            // pixel-art tuned amplitudes
+            int headBobPx = Math.Max(1, w / 40);       // head vertical motion
+            int limbBobPx = Math.Max(1, w / 60);       // limb vertical motion
+            float maxVerticalStretch = 0.06f * intensity; // ~6% change at peak
+
+            // find visible vertical content bounds of the body by scanning pixels (compatible across ImageSharp versions)
+            int contentTop = h, contentBottom = -1;
+            for (int y = 0; y < h; y++)
+            {
+                bool rowHasOpaque = false;
+                for (int x = 0; x < w; x++)
+                {
+                    if (parts.Body[x, y].A != 0)
+                    {
+                        rowHasOpaque = true;
+                        break;
+                    }
+                }
+                if (rowHasOpaque)
+                {
+                    if (y < contentTop) contentTop = y;
+                    if (y > contentBottom) contentBottom = y;
+                }
+            }
+            if (contentBottom < contentTop) { contentTop = 0; contentBottom = h - 1; } // fallback
+            int contentHeight = contentBottom - contentTop + 1;
+
+            double twoPi = Math.PI * 2.0;
+            double breatheCyclesPerLoop = 1.0; // one breath per full loop
 
             for (int f = 0; f < frameCount; f++)
             {
                 float t = f / (float)frameCount;
-                double twoPi = Math.PI * 2.0;
 
-                int headOffsetY = (int)Math.Round(Math.Sin(twoPi * t * 1.0) * headBobPx * intensity);
-                int bodyOffsetX = (int)Math.Round(Math.Sin(twoPi * t * 0.6) * bodyWobblePx * intensity);
-                int limbOffsetX = (int)Math.Round(Math.Sin(twoPi * t * 1.2) * limbSwayPx * intensity);
+                // slightly asymmetric breathing curve (more natural)
+                double fund = Math.Sin(twoPi * t * breatheCyclesPerLoop);
+                double second = 0.35 * Math.Sin(twoPi * t * breatheCyclesPerLoop * 2.0);
+                double breath = fund * 0.75 + second * 0.25;
+                breath = Math.Max(-1.0, Math.Min(1.0, breath));
 
+                // BODY: compute vertical scale (squash/stretch) around bottom anchor (feet fixed)
+                float scaleY = 1f + (float)(breath * maxVerticalStretch);
+                int scaledContentHeight = Math.Max(1, (int)Math.Round(contentHeight * scaleY));
+
+                // destination Y so bottom of scaled content stays at the original bottom (bottom-anchored)
+                int destY = contentBottom - scaledContentHeight + 1;
+                destY = Math.Max(0, Math.Min(destY, h - scaledContentHeight)); // clamp
+
+                // how much the body top moved relative to original contentTop
+                int bodyTopShift = destY - contentTop;
+
+                // LIMBS: small vertical motion in-phase with breath, anchored to body
+                int limbOffsetY = bodyTopShift + (int)Math.Round(breath * limbBobPx);
+
+                // HEAD: slightly different amplitude + small phase offset, anchored to body baseline
+                double headPhaseOffset = 0.10;
+                double headFund = Math.Sin(twoPi * (t + headPhaseOffset) * breatheCyclesPerLoop);
+                double headSecond = 0.25 * Math.Sin(twoPi * (t + headPhaseOffset) * breatheCyclesPerLoop * 2.0);
+                double headBreath = headFund * 0.75 + headSecond * 0.25;
+                int headOffsetY = bodyTopShift + (int)Math.Round(headBreath * headBobPx);
+
+                // Build frame
                 var frame = new Image<Rgba32>(w, h);
+
+                // Clear to transparent using BackgroundColor (compatible)
                 frame.Mutate(ctx => ctx.BackgroundColor(new Rgba32(0, 0, 0, 0)));
 
-                // draw order: body -> appendages -> limbs -> head (head sits above limbs)
-                frame.Mutate(ctx =>
+                // Draw body: either original or vertically resized visible content (nearest-neighbor)
+                if (scaledContentHeight == contentHeight)
                 {
-                    ctx.DrawImage(parts.Body, new SixLabors.ImageSharp.Point(bodyOffsetX, 0), 1f);
-                    ctx.DrawImage(parts.Appendages, new SixLabors.ImageSharp.Point(bodyOffsetX, 0), 1f);
-                    ctx.DrawImage(parts.Limbs, new SixLabors.ImageSharp.Point(limbOffsetX, 0), 1f);
-                    ctx.DrawImage(parts.Head, new SixLabors.ImageSharp.Point(0, headOffsetY), 1f);
-                });
+                    frame.Mutate(ctx => ctx.DrawImage(parts.Body, new SixLabors.ImageSharp.Point(0, 0), 1f));
+                }
+                else
+                {
+                    // crop visible content then resize vertically with NearestNeighbor
+                    using (var crop = parts.Body.Clone(x => x.Crop(new SixLabors.ImageSharp.Rectangle(0, contentTop, w, contentHeight))))
+                    using (var scaled = crop.Clone(x => x.Resize(new SixLabors.ImageSharp.Processing.ResizeOptions
+                    {
+                        Size = new SixLabors.ImageSharp.Size(w, scaledContentHeight),
+                        Sampler = SixLabors.ImageSharp.Processing.KnownResamplers.NearestNeighbor,
+                        Mode = SixLabors.ImageSharp.Processing.ResizeMode.Stretch
+                    })))
+                    {
+                        frame.Mutate(ctx => ctx.DrawImage(scaled, new SixLabors.ImageSharp.Point(0, destY), 1f));
+                    }
+                }
+
+                // Draw limbs (vertical only, anchored to body)
+                frame.Mutate(ctx => ctx.DrawImage(parts.Limbs, new SixLabors.ImageSharp.Point(0, limbOffsetY), 1f));
+
+                // Draw head (vertical only, anchored to body baseline + head offset)
+                frame.Mutate(ctx => ctx.DrawImage(parts.Head, new SixLabors.ImageSharp.Point(0, headOffsetY), 1f));
 
                 frames.Add(frame);
             }
 
             return frames;
         }
+
+
 
         /// <summary>
         /// Save frames to disk as PNGs (convenience).

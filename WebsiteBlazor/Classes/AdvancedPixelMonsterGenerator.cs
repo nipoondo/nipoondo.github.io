@@ -18,16 +18,14 @@ namespace AutoSpriteCreator
     public static class RNG
     {
         public static Random Rand = new Random();
+
+        public static void SetSeed(int seed) => Rand = new(seed);
     }
 
     public class AdvancedPixelMonsterGenerator
     {
         public static string MonsterMain(Settings settings)
         {
-            // config: frames and delay (ms per frame) — tune or move into Settings
-            int frameCount = 8;
-            int frameDelayMs = 80; // ms per frame; GIF uses hundredths of a second, so 80ms -> frameDelay = 8
-
             if (settings.Generator == 0)
             {
                 Image<Rgba32> monster = GenerateMonster(settings.Dimension, settings.Dimension, settings);
@@ -45,7 +43,7 @@ namespace AutoSpriteCreator
                 var parts = MonsterSpriteFactory.GenerateParts(settings);
 
                 // build animation frames (layer-composed images)
-                var frames = MonsterSpriteFactory.GenerateSimpleAnimation(parts, frameCount: frameCount, intensity: 1.0f);
+                var frames = MonsterSpriteFactory.GenerateSimpleAnimation(parts, frameCount: settings.FrameCount, intensity: settings.AnimationIntesity);
 
                 // If only one frame, return it as PNG (transparent)
                 if (frames.Count == 1)
@@ -69,7 +67,7 @@ namespace AutoSpriteCreator
                     rootMeta.RepeatCount = 0;
 
                     // convert ms delay to GIF hundredths of seconds (min 1)
-                    ushort gifDelay = (ushort)Math.Max(1, frameDelayMs / 10);
+                    ushort gifDelay = (ushort)Math.Max(1, settings.FrameDelayInMs / 10);
 
                     // set for first frame
                     animated.Frames.RootFrame.Metadata.GetGifMetadata().FrameDelay = gifDelay;
@@ -124,11 +122,10 @@ namespace AutoSpriteCreator
                 FeatureDrawer.AddInternalPatterns(bmp, mask, patternColor);
             }
 
-            // 5) Draw features (eyes, mouth, limbs, appendages) on top of patterns
+            // 5) Draw features (eyes, mouth, limbs) on top of patterns
             FeatureDrawer.AddEyes(bmp, mask, accentColor);
             FeatureDrawer.AddMouth(bmp, mask);
             FeatureDrawer.AddAnchoredLimbs(bmp, mask, accentColor, settings.Margin);
-            FeatureDrawer.AddAppendages(bmp, mask, accentColor, settings.Margin);
 
             // 6) Outline & shading (topmost)
             FeatureDrawer.DrawMaskOutline(bmp, mask, outlineColor);

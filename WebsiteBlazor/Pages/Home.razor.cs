@@ -17,6 +17,17 @@ namespace WebsiteBlazor.Pages
 
         private void GenerateMonsterSprite()
         {
+            if (_settings.UseSeed)
+            {
+                RNG.SetSeed(_settings.Seed);
+            }
+            else
+            {
+                RNG.Rand = new Random();
+                _settings.Seed = RNG.Rand.Next();
+                RNG.SetSeed(_settings.Seed);
+            }
+
             _sprite = AdvancedPixelMonsterGenerator.MonsterMain(_settings);
         }
 

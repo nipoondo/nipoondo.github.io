@@ -39,29 +39,22 @@ namespace AutoSpriteCreator
             // 2) produce a varied body from the base body (noise, segments, lobes, spikes, holes)
             bool[,] variedBody = GenerateVariedBody(baseBody, bodyStartY, bodyHeight, settings);
 
-            // 3) recombine with processed extras and the preserved head region
-            // we apply a tiny perimeter noise and cleanup again for painterly niceness
-            bool[,] combined = new bool[settings.Dimension, settings.Dimension];
+            // 3) cleanup pipeline for the body only (NO head merged in)
+            bool[,] processedBody = (bool[,])variedBody.Clone();
+            AddPerimeterNoise(processedBody, 0.10, 0.05);
+            MorphologicalClean(processedBody, 1);
+            processedBody = ApplyOrganicSymmetry(processedBody, 0.18, settings.Margin);
+            processedBody = CloseMask(processedBody, 1);
+            EnforceMargin(processedBody, settings.Margin);
+
+            // Ensure body does not contain any head pixels so the head can be positioned freely
             for (int x = 0; x < settings.Dimension; x++)
                 for (int y = 0; y < settings.Dimension; y++)
-                    combined[x, y] = variedBody[x, y] || baseHead[x, y];
+                    if (baseHead[x, y]) processedBody[x, y] = false;
 
-            AddPerimeterNoise(combined, 0.10, 0.05);
-            MorphologicalClean(combined, 1);
-            combined = ApplyOrganicSymmetry(combined, 0.18, settings.Margin);
-            combined = CloseMask(combined, 1);
-            EnforceMargin(combined, settings.Margin);
-
-            // 4) split into head vs body masks: prefer original head pixels to ensure stable eyes/mouth
-            bodyMask = new bool[settings.Dimension, settings.Dimension];
-            headMask = new bool[settings.Dimension, settings.Dimension];
-            for (int x = 0; x < settings.Dimension; x++)
-                for (int y = 0; y < settings.Dimension; y++)
-                {
-                    if (!combined[x, y]) continue;
-                    if (baseHead[x, y]) headMask[x, y] = true;
-                    else bodyMask[x, y] = true;
-                }
+            // 4) outputs: body only (cleaned) and pure head (unchanged from base)
+            bodyMask = processedBody;
+            headMask = baseHead;
         }
 
         // ------------------- Core varied body generator -------------------
@@ -75,8 +68,7 @@ namespace AutoSpriteCreator
             float[,] signed = new float[w, h];
             for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) signed[x, y] = distToBG[x, y] - distToFG[x, y];
 
-            var seed = RNG.Rand.Next();
-            NoisePresets.ComputeForWidth(w, settings.NoiseStyle, out float baseNoiseScale, out float amplitudePx, out int octaves, out float persistence, seed: seed);
+            NoisePresets.ComputeForWidth(w, settings.NoiseStyle, out float baseNoiseScale, out float amplitudePx, out int octaves, out float persistence, seed: settings.Seed);
             int targetCells = RNG.Rand.Next(Math.Max(1, w / 24), Math.Max(2, w / 8)); // varied cell count
 
             // Ensure consistent effect across octaves
@@ -94,7 +86,7 @@ namespace AutoSpriteCreator
                     float v = (y - bodyStartY) / (float)Math.Max(1, bodyHeight);
                     float falloff = Clamp01(SmoothStep(Clamp01(v))); // 0 near head, 1 in lower body
 
-                    float fbm = SampleFbm(x * baseNoiseScale, y * baseNoiseScale, octaves, persistence, seed);
+                    float fbm = SampleFbm(x * baseNoiseScale, y * baseNoiseScale, octaves, persistence, settings.Seed);
                     // value-noise based fbm roughly in [-1..1]; normalize by totalAmp
                     fbm /= totalAmp;
                     float displacement = fbm * amplitudePx * falloff;

@@ -261,26 +261,6 @@ namespace AutoSpriteCreator
             }
         }
 
-        public static void AddAppendages(Image<Rgba32> bmp, bool[,] mask, Rgba32 color, int margin)
-        {
-            var edges = PixelUtils.GetMaskEdgePoints(mask);
-            if (edges.Count == 0) return;
-            int w = mask.GetLength(0), h = mask.GetLength(1);
-            int tries = 6;
-            for (int i = 0; i < tries; i++)
-            {
-                Point p = edges[RNG.Rand.Next(edges.Count)];
-                int dir = (p.X < w / 2) ? -1 : 1;
-                for (int s = 1; s <= RNG.Rand.Next(1, 5); s++)
-                {
-                    int tx = p.X + dir * s;
-                    int ty = p.Y + ((RNG.Rand.NextDouble() < 0.5) ? -s : s / 2);
-                    if (tx < margin || tx >= w - margin || ty < margin || ty >= h - margin) break;
-                    PixelUtils.SafeSetPixel(bmp, tx, ty, color);
-                }
-            }
-        }
-
         public static void DrawMaskOutline(Image<Rgba32> bmp, bool[,] mask, Rgba32 outlineColor)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
