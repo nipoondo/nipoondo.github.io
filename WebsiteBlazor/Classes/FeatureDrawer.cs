@@ -5,13 +5,41 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace AutoSpriteCreator
 {
+    // Put near the top of FeatureDrawer
+    public enum PaletteMode
+    {
+        Monochrome,
+        Analogous,
+        Complementary,
+        SplitComplementary,
+        Triadic,
+        TwoToneRandom,   // two strong hues, softer shading
+        SoftStripes,      // produces an alternating-hue palette (for stripe-like bands)
+        Random
+    }
+
     public static class FeatureDrawer
     {
-        public static void ApplyNoisePalette(Image<Rgba32> bmp, bool[,] mask, Rgba32 baseColor, Rgba32 accentColor, int nColors = 6, bool outline = true)
+        public static void ApplyNoisePalette(Image<Rgba32> bmp, bool[,] mask,
+    Rgba32 baseColor, Rgba32 accentColor, int nColors = 6, bool outline = true,
+    PaletteMode mode = PaletteMode.Monochrome, bool[,] headMask = null, PaletteMode? headMode = null,
+    int? paletteSeed = null)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
 
-            Rgba32[] palette = BuildPaletteFromBase(baseColor, nColors);
+            // if mode is Random, choose any other mode per random
+            if(mode == PaletteMode.Random)
+                mode = (PaletteMode)(RNG.Rand.Next() % 7);
+
+            // Build main palette and optional head palette
+            Rgba32[] palette = BuildPaletteFromMode(baseColor, mode, nColors, paletteSeed);
+            Rgba32[] headPalette = null;
+            if (headMask != null)
+            {
+                var hm = headMode ?? mode;
+                // small seed difference so palettes are related but not identical
+                headPalette = BuildPaletteFromMode(baseColor, hm, nColors, (paletteSeed ?? 0) + 12345);
+            }
 
             var noise = new ValueNoise(RNG.Rand.Next())
             {
@@ -38,88 +66,196 @@ namespace AutoSpriteCreator
                     double n = Math.Pow(Math.Abs(noise.GetNoise2D(colX, y)), 1.5) * 3.0;
                     double n2 = Math.Pow(Math.Abs(noise2.GetNoise2D(colX, y)), 1.5) * 3.0;
 
+                    // edge nudges (preserve outline behavior)
                     bool right = PixelUtils.IsPointInMask(mask, x + 1, y);
                     bool left = PixelUtils.IsPointInMask(mask, x - 1, y);
                     bool down = PixelUtils.IsPointInMask(mask, x, y + 1);
                     bool up = PixelUtils.IsPointInMask(mask, x, y - 1);
 
-                    if (!down)
-                    {
-                        n -= 0.45; n *= 0.8;
-                        if (outline) PixelUtils.SafeSetPixel(bmp, x, y + 1, Rgba32.ParseHex("#00000000"));
-                    }
-                    if (!right)
-                    {
-                        n += 0.2; n *= 1.1;
-                        if (outline) PixelUtils.SafeSetPixel(bmp, x + 1, y, Rgba32.ParseHex("#00000000"));
-                    }
-                    if (!up)
-                    {
-                        n += 0.45; n *= 1.2;
-                        if (outline) PixelUtils.SafeSetPixel(bmp, x, y - 1, Rgba32.ParseHex("#00000000"));
-                    }
-                    if (!left)
-                    {
-                        n += 0.2; n *= 1.1;
-                        if (outline) PixelUtils.SafeSetPixel(bmp, x - 1, y, Rgba32.ParseHex("#00000000"));
-                    }
+                    if (!down) { n -= 0.45; n *= 0.8; if (outline) PixelUtils.SafeSetPixel(bmp, x, y + 1, Rgba32.ParseHex("#00000000")); }
+                    if (!right) { n += 0.2; n *= 1.1; if (outline) PixelUtils.SafeSetPixel(bmp, x + 1, y, Rgba32.ParseHex("#00000000")); }
+                    if (!up) { n += 0.45; n *= 1.2; if (outline) PixelUtils.SafeSetPixel(bmp, x, y - 1, Rgba32.ParseHex("#00000000")); }
+                    if (!left) { n += 0.2; n *= 1.1; if (outline) PixelUtils.SafeSetPixel(bmp, x - 1, y, Rgba32.ParseHex("#00000000")); }
 
-                    int idx0 = NoiseIndexToPalette(noise.GetNoise2D(colX, y), nColors);
-                    int idx1 = NoiseIndexToPalette(noise.GetNoise2D(colX, y - 1), nColors);
-                    int idx2 = NoiseIndexToPalette(noise.GetNoise2D(colX, y + 1), nColors);
-                    int idx3 = NoiseIndexToPalette(noise.GetNoise2D(colX - 1, y), nColors);
-                    int idx4 = NoiseIndexToPalette(noise.GetNoise2D(colX + 1, y), nColors);
-
-                    Rgba32 c0 = palette[idx0];
-                    Rgba32 c1 = palette[idx1];
-                    Rgba32 c2 = palette[idx2];
-                    Rgba32 c3 = palette[idx3];
-                    Rgba32 c4 = palette[idx4];
-
-                    double diff =
-                        (Math.Abs(c0.R - c1.R) / 255.0 + Math.Abs(c0.G - c1.G) / 255.0 + Math.Abs(c0.B - c1.B) / 255.0) +
-                        (Math.Abs(c0.R - c2.R) / 255.0 + Math.Abs(c0.G - c2.G) / 255.0 + Math.Abs(c0.B - c2.B) / 255.0) +
-                        (Math.Abs(c0.R - c3.R) / 255.0 + Math.Abs(c0.G - c3.G) / 255.0 + Math.Abs(c0.B - c3.B) / 255.0) +
-                        (Math.Abs(c0.R - c4.R) / 255.0 + Math.Abs(c0.G - c4.G) / 255.0 + Math.Abs(c0.B - c4.B) / 255.0);
-
-                    if (diff > 2.0)
-                    {
-                        n += 0.3; n *= 1.5;
-                        n2 += 0.3; n2 *= 1.5;
-                    }
-
+                    // normalized noise value in 0..1
                     n = Math.Max(0.0, Math.Min(1.0, n));
-                    int pick = (int)Math.Floor(n * (nColors - 1));
-                    pick = Math.Max(0, Math.Min(nColors - 1, pick));
+                    n2 = Math.Max(0.0, Math.Min(1.0, n2));
 
-                    PixelUtils.SafeSetPixel(bmp, x, y, palette[pick]);
+                    // choose which palette to use: head or body
+                    var useHead = headMask != null && headMask[x, y];
+                    Rgba32[] usePal = useHead ? headPalette ?? palette : palette;
+
+                    // accent placement: use a high-threshold on the second noise channel for sparing accents
+                    if (n2 > 0.9)
+                    {
+                        // mix accent with palette color for variety (keeps accents from being pure neon)
+                        var baseCol = GetPaletteColor(usePal, n);
+                        var mixed = LerpColor(baseCol, accentColor, 0.75); // 75% accent
+                        PixelUtils.SafeSetPixel(bmp, x, y, mixed);
+                    }
+                    else
+                    {
+                        // Smooth palette lookup (interpolated) to avoid abrupt jumps
+                        var col = GetPaletteColor(usePal, n);
+                        PixelUtils.SafeSetPixel(bmp, x, y, col);
+                    }
                 }
             }
         }
 
-        static int NoiseIndexToPalette(double noiseVal, int nColors)
+        static Rgba32 LerpColor(Rgba32 a, Rgba32 b, double t)
         {
-            double v = noiseVal * 0.5 + 0.5;
-            int idx = (int)Math.Floor(v * (nColors - 1) + 1e-9);
-            return Math.Clamp(idx, 0, nColors - 1);
+            double r = a.R + (b.R - a.R) * t;
+            double g = a.G + (b.G - a.G) * t;
+            double bl = a.B + (b.B - a.B) * t;
+            return new Rgba32((byte)Math.Clamp((int)Math.Round(r), 0, 255),
+                              (byte)Math.Clamp((int)Math.Round(g), 0, 255),
+                              (byte)Math.Clamp((int)Math.Round(bl), 0, 255),
+                              255);
         }
 
-        static Rgba32[] BuildPaletteFromBase(Rgba32 baseColor, int nColors)
+        static Rgba32 GetPaletteColor(Rgba32[] pal, double t)
         {
-            Rgba32[] pal = new Rgba32[nColors];
+            if (pal == null || pal.Length == 0) return Rgba32.ParseHex("#FF00FF"); // debug fallback
+            if (pal.Length == 1) return pal[0];
+            t = Math.Max(0.0, Math.Min(1.0, t));
+            double idx = t * (pal.Length - 1);
+            int i0 = (int)Math.Floor(idx);
+            int i1 = Math.Min(pal.Length - 1, i0 + 1);
+            double ft = idx - i0;
+            return LerpColor(pal[i0], pal[i1], ft);
+        }
+
+        static Rgba32[] BuildPaletteFromMode(Rgba32 baseColor, PaletteMode mode, int nColors, int? seed = null)
+        {
             double h, s, v;
             ColorUtils.RGBtoHSV(baseColor, out h, out s, out v);
 
-            double vMin = Math.Max(0.12, v * 0.35);
-            double vMax = Math.Min(1.0, v * 1.15 + 0.05);
+            var rng = seed.HasValue ? new Random(seed.Value) : RNG.Rand;
+            double clampSMin = 0.18;
+            double clampSMax = 0.95;
+            double clampVMin = 0.15;
+            double clampVMax = 0.98;
 
-            for (int i = 0; i < nColors; i++)
+            Rgba32[] pal = new Rgba32[nColors];
+            // helper to normalize hue angle
+            double Wrap(double a) { a %= 360; if (a < 0) a += 360; return a; }
+
+            switch (mode)
             {
-                double t = nColors == 1 ? 0.5 : (double)i / (nColors - 1);
-                double vv = vMin + (vMax - vMin) * t;
-                double ss = Math.Max(0.05, Math.Min(1.0, s * (1.0 - 0.15 * (t - 0.5))));
-                pal[i] = ColorUtils.ColorFromHSV(h, ss, vv);
+                case PaletteMode.Monochrome:
+                    {
+                        // like your original palette but keep subtle sat adjustments
+                        double vMin = Math.Max(clampVMin, v * 0.35);
+                        double vMax = Math.Min(clampVMax, v * 1.15 + 0.04);
+                        for (int i = 0; i < nColors; i++)
+                        {
+                            double t = nColors == 1 ? 0.5 : (double)i / (nColors - 1);
+                            double vv = vMin + (vMax - vMin) * t;
+                            double ss = Math.Max(clampSMin, Math.Min(clampSMax, s * (1.0 - 0.12 * (t - 0.5))));
+                            pal[i] = ColorUtils.ColorFromHSV(h, ss, vv);
+                        }
+                    }
+                    break;
+
+                case PaletteMode.Analogous:
+                    {
+                        double spread = 40.0 + rng.NextDouble() * 20.0; // 40..60 degrees total
+                        double start = Wrap(h - spread * 0.5);
+                        for (int i = 0; i < nColors; i++)
+                        {
+                            double t = nColors == 1 ? 0.5 : (double)i / (nColors - 1);
+                            double hh = Wrap(start + t * spread);
+                            double ss = Math.Max(clampSMin, Math.Min(clampSMax, s * (0.9 + rng.NextDouble() * 0.2)));
+                            double vv = Math.Max(clampVMin, Math.Min(clampVMax, v * (0.85 + (t - 0.5) * 0.2)));
+                            pal[i] = ColorUtils.ColorFromHSV(hh, ss, vv);
+                        }
+                    }
+                    break;
+
+                case PaletteMode.Complementary:
+                    {
+                        // blend from base toward hue+180 with shades
+                        double comp = Wrap(h + 180.0);
+                        for (int i = 0; i < nColors; i++)
+                        {
+                            double t = nColors == 1 ? 0.5 : (double)i / (nColors - 1);
+                            // bias toward base in center and complement at edges
+                            double hh = (t < 0.5) ? Wrap(h + (t * 2.0 - 1.0) * 25.0) : Wrap(comp + ((t - 0.5) * 2.0 - 1.0) * 25.0);
+                            double ss = Math.Max(clampSMin, Math.Min(clampSMax, 0.6 + 0.4 * (1 - Math.Abs(0.5 - t))));
+                            double vv = Math.Max(clampVMin, Math.Min(clampVMax, v * (0.7 + 0.6 * t)));
+                            pal[i] = ColorUtils.ColorFromHSV(hh, ss, vv);
+                        }
+                    }
+                    break;
+
+                case PaletteMode.SplitComplementary:
+                    {
+                        double comp = Wrap(h + 180.0);
+                        double off = 22 + rng.NextDouble() * 8; // 22..30 deg from complement
+                        double c1 = Wrap(comp - off), c2 = Wrap(comp + off);
+                        // distribute base + the two split complement colors into palette
+                        for (int i = 0; i < nColors; i++)
+                        {
+                            double t = (double)i / Math.Max(1, nColors - 1);
+                            double hh = t < 0.5 ? Wrap(h + (t - 0.25) * 40) : (t < 0.75 ? c1 : c2);
+                            pal[i] = ColorUtils.ColorFromHSV(hh, Math.Max(clampSMin, s * 0.9), Math.Min(clampVMax, v * (0.85 + 0.2 * t)));
+                        }
+                    }
+                    break;
+
+                case PaletteMode.Triadic:
+                    {
+                        // 3 roots at h, h+120, h+240; interpolate shades per root
+                        double[] roots = new[] { h, Wrap(h + 120), Wrap(h + 240) };
+                        for (int i = 0; i < nColors; i++)
+                        {
+                            double t = (double)i / Math.Max(1, nColors - 1);
+                            // pick which root proportional to t
+                            double which = t * roots.Length;
+                            int r0 = Math.Min(roots.Length - 1, (int)Math.Floor(which));
+                            double localT = which - r0;
+                            double hh = Wrap(roots[r0] + (localT - 0.5) * 12.0);
+                            double ss = Math.Max(clampSMin, Math.Min(clampSMax, s * (0.9 + 0.2 * (r0 % 2))));
+                            double vv = Math.Max(clampVMin, Math.Min(clampVMax, v * (0.8 + 0.25 * (r0))));
+                            pal[i] = ColorUtils.ColorFromHSV(hh, ss, vv);
+                        }
+                    }
+                    break;
+
+                case PaletteMode.TwoToneRandom:
+                    {
+                        // pick a second hue at moderate distance (60..140 deg) for variety
+                        double hue2 = Wrap(h + (rng.NextDouble() * 80 + 60) * (rng.NextDouble() < 0.5 ? 1 : -1));
+                        for (int i = 0; i < nColors; i++)
+                        {
+                            double t = (double)i / Math.Max(1, nColors - 1);
+                            double hh = Wrap((1 - t) * h + t * hue2);
+                            double ss = Math.Max(clampSMin, Math.Min(clampSMax, s * (0.7 + 0.6 * (1 - Math.Abs(0.5 - t)))));
+                            double vv = Math.Max(clampVMin, Math.Min(clampVMax, v * (0.6 + 0.8 * t)));
+                            pal[i] = ColorUtils.ColorFromHSV(hh, ss, vv);
+                        }
+                    }
+                    break;
+
+                case PaletteMode.SoftStripes:
+                    {
+                        // alternating small hue shifts for stripe-like bands
+                        double stripeSpread = 22.0;
+                        for (int i = 0; i < nColors; i++)
+                        {
+                            double t = (double)i / Math.Max(1, nColors - 1);
+                            double hh = Wrap(h + Math.Sin(i * 2.2) * stripeSpread);
+                            pal[i] = ColorUtils.ColorFromHSV(hh, Math.Max(clampSMin, s * 0.85), Math.Max(clampVMin, v * (0.7 + 0.3 * t)));
+                        }
+                    }
+                    break;
+
+                default:
+                    // fallback: monochrome
+                    return BuildPaletteFromMode(baseColor, PaletteMode.Monochrome, nColors, seed);
             }
+
             return pal;
         }
 
@@ -282,23 +418,6 @@ namespace AutoSpriteCreator
                 Rgba32 cur = bmp[p.X, p.Y];
                 PixelUtils.SafeSetPixel(bmp, p.X, p.Y, ColorUtils.Darken(cur, 0.75f));
             }
-        }
-
-        public static void ApplySimpleShading(Image<Rgba32> bmp, bool[,] mask)
-        {
-            int w = bmp.Width, h = bmp.Height;
-            float lx = w * 0.2f, ly = h * 0.2f;
-
-            for (int x = 0; x < w; x++)
-                for (int y = 0; y < h; y++)
-                    if (mask[x, y])
-                    {
-                        Rgba32 orig = bmp[x, y];
-                        float dx = (x - lx) / w;
-                        float dy = (y - ly) / h;
-                        float shade = 1f - Math.Min(0.35f, (dx * dx + dy * dy));
-                        PixelUtils.SafeSetPixel(bmp, x, y, ColorUtils.Lighten(orig, 1 - shade));
-                    }
         }
 
         static bool IsEdgeMask(bool[,] mask, int x, int y)

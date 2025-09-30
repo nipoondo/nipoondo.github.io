@@ -113,7 +113,7 @@ namespace AutoSpriteCreator
             Rgba32 outlineColor = ColorUtils.Darken(baseColor, 0.34f);
 
             // 3) Paint base body from mask using noise-driven palette (new)
-            FeatureDrawer.ApplyNoisePalette(bmp, mask, baseColor, accentColor, nColors: 6, outline: true);
+            FeatureDrawer.ApplyNoisePalette(bmp, mask, baseColor, accentColor, nColors: settings.numberOfColors, outline: true, mode: settings.paletteMode);
 
 
             // 4) Draw internal patterns BEFORE eyes & mouth so they appear behind those features

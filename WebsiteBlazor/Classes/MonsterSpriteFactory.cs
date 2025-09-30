@@ -42,7 +42,7 @@ namespace WebsiteBlazor.Classes
             // body image (transparent background)
             var bodyImg = new Image<Rgba32>(width, height);
             bodyImg.Mutate(ctx => ctx.BackgroundColor(new Rgba32(0, 0, 0, 0)));
-            FeatureDrawer.ApplyNoisePalette(bodyImg, bodyMask, baseColor, accentColor, nColors: 6, outline: false);
+            FeatureDrawer.ApplyNoisePalette(bodyImg, bodyMask, baseColor, accentColor, nColors: settings.numberOfColors, outline: false, mode: settings.paletteMode);
             if (settings.DrawPatterns)
             {
                 FeatureDrawer.AddInternalPatterns(bodyImg, bodyMask, patternColor);
@@ -53,7 +53,7 @@ namespace WebsiteBlazor.Classes
             var headImg = new Image<Rgba32>(width, height);
             headImg.Mutate(ctx => ctx.BackgroundColor(new Rgba32(0, 0, 0, 0)));
             // You may want slightly fewer palette colors for head to read better
-            FeatureDrawer.ApplyNoisePalette(headImg, headMask, baseColor, accentColor, nColors: 4, outline: false);
+            FeatureDrawer.ApplyNoisePalette(headImg, headMask, baseColor, accentColor, nColors: settings.numberOfColors, outline: false, mode: settings.paletteMode);
             FeatureDrawer.AddEyes(headImg, headMask, accentColor);
             FeatureDrawer.AddMouth(headImg, headMask);
             FeatureDrawer.DrawMaskOutline(headImg, headMask, outlineColor);

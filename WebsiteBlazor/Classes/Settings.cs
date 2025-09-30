@@ -1,4 +1,6 @@
-﻿namespace WebsiteBlazor.Classes
+﻿using AutoSpriteCreator;
+
+namespace WebsiteBlazor.Classes
 {
     public class Settings
     {
@@ -13,6 +15,8 @@
         public int FrameDelayInMs = 80;
         public bool UseSeed = false;
         public int Seed = 27011998;
+        public PaletteMode paletteMode = PaletteMode.Monochrome;
+        public int numberOfColors = 4;
     }
 
     public enum NoiseStyle { Blobby, Balanced, Detailed, Random }

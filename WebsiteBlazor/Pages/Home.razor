@@ -62,11 +62,26 @@
 			<button @onclick="(() => _settings.NoiseStyle = Classes.NoiseStyle.Random)" class="@(_settings.NoiseStyle == Classes.NoiseStyle.Random ? "active-button" : "")">Random</button>
 		</fieldset>
 		<fieldset>
-			<legend>Colors</legend>
+			<legend>Colors 1</legend>
 			<button @onclick="(() => _settings.ColorStyle = Classes.ColorStyle.Harmonious)" class="@(_settings.ColorStyle == Classes.ColorStyle.Harmonious ? "active-button" : "")">Harmonious</button>
 			<button @onclick="(() => _settings.ColorStyle = Classes.ColorStyle.RandomAccent)" class="@(_settings.ColorStyle == Classes.ColorStyle.RandomAccent ? "active-button" : "")">Random Accent</button>
 			<button @onclick="(() => _settings.ColorStyle = Classes.ColorStyle.RandomDarken)" class="@(_settings.ColorStyle == Classes.ColorStyle.RandomDarken ? "active-button" : "")">+ Random Patterns</button>
 			<button @onclick="(() => _settings.ColorStyle = Classes.ColorStyle.RandomOutline)" class="@(_settings.ColorStyle == Classes.ColorStyle.RandomOutline ? "active-button" : "")">+ Random Outline</button>
+		</fieldset>
+		<fieldset>
+			<legend>Number of Colors (@_settings.numberOfColors)</legend>
+			<input type="range" min="1" max="8" @bind="_settings.numberOfColors" />
+		</fieldset>
+		<fieldset>
+			<legend>Colors 2 (not tested)</legend>
+			<button @onclick="(() => _settings.paletteMode = AutoSpriteCreator.PaletteMode.Monochrome)" class="@(_settings.paletteMode == AutoSpriteCreator.PaletteMode.Monochrome ? "active-button" : "")">Monochrome</button>
+			<button @onclick="(() => _settings.paletteMode = AutoSpriteCreator.PaletteMode.Analogous)" class="@(_settings.paletteMode == AutoSpriteCreator.PaletteMode.Analogous ? "active-button" : "")">Analogous</button>
+			<button @onclick="(() => _settings.paletteMode = AutoSpriteCreator.PaletteMode.Complementary)" class="@(_settings.paletteMode == AutoSpriteCreator.PaletteMode.Complementary ? "active-button" : "")">Complementary</button>
+			<button @onclick="(() => _settings.paletteMode = AutoSpriteCreator.PaletteMode.SplitComplementary)" class="@(_settings.paletteMode == AutoSpriteCreator.PaletteMode.SplitComplementary ? "active-button" : "")">Split Complementary</button>
+			<button @onclick="(() => _settings.paletteMode = AutoSpriteCreator.PaletteMode.Triadic)" class="@(_settings.paletteMode == AutoSpriteCreator.PaletteMode.Triadic ? "active-button" : "")">Triadic</button>
+			<button @onclick="(() => _settings.paletteMode = AutoSpriteCreator.PaletteMode.TwoToneRandom)" class="@(_settings.paletteMode == AutoSpriteCreator.PaletteMode.TwoToneRandom ? "active-button" : "")">Two Tone Random</button>
+			<button @onclick="(() => _settings.paletteMode = AutoSpriteCreator.PaletteMode.SoftStripes)" class="@(_settings.paletteMode == AutoSpriteCreator.PaletteMode.SoftStripes ? "active-button" : "")">SoftStripes</button>
+			<button @onclick="(() => _settings.paletteMode = AutoSpriteCreator.PaletteMode.Random)" class="@(_settings.paletteMode == AutoSpriteCreator.PaletteMode.Random ? "active-button" : "")">Random Scheme</button>
 		</fieldset>
 		<fieldset>
 			<legend>Generator Type</legend>
