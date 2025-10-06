@@ -61,7 +61,18 @@ namespace WebsiteBlazor.Classes
             // limbs (draw only limb pixels onto transparent image)
             var limbImg = new Image<Rgba32>(width, height);
             limbImg.Mutate(ctx => ctx.BackgroundColor(new Rgba32(0, 0, 0, 0)));
-            FeatureDrawer.AddAnchoredLimbs(limbImg, bodyMask, accentColor, margin);
+            FeatureDrawer.AddAnchoredLimbs(
+                limbImg,
+                bodyMask,
+                baseColor,      // same base you used for the body
+                accentColor,    // same accent as body/head
+                patternColor,   // same internal pattern color
+                outlineColor,   // outline matching the body
+                settings.numberOfColors,
+                margin,
+                settings.paletteMode,
+                drawPatterns: settings.DrawPatterns,
+                forcedStyle: settings.limbStyle);
 
             // anchors (simple, robust heuristics)
             var anchors = new Dictionary<string, SixLabors.ImageSharp.Point>();

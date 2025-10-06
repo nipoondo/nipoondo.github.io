@@ -5,7 +5,6 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace AutoSpriteCreator
 {
-    // Put near the top of FeatureDrawer
     public enum PaletteMode
     {
         Monochrome,
@@ -15,6 +14,17 @@ namespace AutoSpriteCreator
         Triadic,
         TwoToneRandom,   // two strong hues, softer shading
         SoftStripes,      // produces an alternating-hue palette (for stripe-like bands)
+        Random
+    }
+
+    public enum LimbStyle
+    {
+        Simple,     // thicker single stroke with slight jitter
+        Thick,      // chunky tapering limb
+        Segmented,  // series of overlapping rounded segments (like armor/sausages)
+        Tentacle,   // wavy/tapering limb
+        Jointed,    // two-segment limb with elbow/knee
+        Paw,         // short stubby leg with rounded foot (good for legs)
         Random
     }
 
@@ -28,7 +38,7 @@ namespace AutoSpriteCreator
             int w = mask.GetLength(0), h = mask.GetLength(1);
 
             // if mode is Random, choose any other mode per random
-            if(mode == PaletteMode.Random)
+            if (mode == PaletteMode.Random)
                 mode = (PaletteMode)(RNG.Rand.Next() % 7);
 
             // Build main palette and optional head palette
@@ -366,34 +376,297 @@ namespace AutoSpriteCreator
             PixelUtils.SafeSetPixel(bmp, mx + 1, my, Rgba32.ParseHex("#00000000"));
         }
 
-        public static void AddAnchoredLimbs(Image<Rgba32> bmp, bool[,] mask, Rgba32 limbColor, int margin)
+        // ---------- Backwards-compatible overload (keeps existing call sites working) ----------
+        // old signature: (Image limbImg, bool[,] bodyMask, Rgba32 limbColor, int margin)
+        // This overload infers a palette and forwards to the rich overload.
+        public static void AddAnchoredLimbs(Image<Rgba32> limbImg, bool[,] bodyMask, Rgba32 limbAccentColor, int margin, LimbStyle? forcedStyle = null)
         {
-            var edges = PixelUtils.GetMaskEdgePoints(mask);
+            // derive reasonable palette pieces when caller only provided a single accent color
+            var baseColor = ColorUtils.Darken(limbAccentColor, 0.10f);    // base slightly darker than accent
+            var patternColor = ColorUtils.Darken(baseColor, 0.55f);
+            var outlineColor = ColorUtils.Darken(baseColor, 0.34f);
+            int nColors = 3;
+            PaletteMode mode = PaletteMode.TwoToneRandom;
+
+            AddAnchoredLimbs(limbImg, bodyMask, baseColor, limbAccentColor, patternColor, outlineColor, nColors, margin, mode, drawPatterns: true, forcedStyle: forcedStyle);
+        }
+
+        // ---------- Rich overload (use this from GenerateParts to match body palette exactly) ----------
+        public static void AddAnchoredLimbs(
+            Image<Rgba32> limbImg,
+            bool[,] bodyMask,
+            Rgba32 baseColor,
+            Rgba32 accentColor,
+            Rgba32 patternColor,
+            Rgba32 outlineColor,
+            int nColors,
+            int margin,
+            PaletteMode paletteMode,
+            bool drawPatterns = true,
+            LimbStyle? forcedStyle = null)
+        {
+            // build limbMask first (limb-only pixels)
+            int w = bodyMask.GetLength(0), h = bodyMask.GetLength(1);
+            bool[,] limbMask = new bool[w, h];
+
+            // find reasonable anchor points on the body edges
+            var edges = PixelUtils.GetMaskEdgePoints(bodyMask);
             if (edges.Count == 0) return;
-            int w = mask.GetLength(0), h = mask.GetLength(1);
+
             Point leftArm = PixelUtils.FindEdgeNear(edges, w / 4, h / 3);
             Point rightArm = PixelUtils.FindEdgeNear(edges, 3 * w / 4, h / 3);
             Point leftLeg = PixelUtils.FindEdgeNear(edges, w / 4, (int)(h * 0.85));
             Point rightLeg = PixelUtils.FindEdgeNear(edges, 3 * w / 4, (int)(h * 0.85));
 
-            if (!leftArm.IsEmpty) DrawLimbWithMask(bmp, mask, leftArm.X, leftArm.Y, -1, 1, RNG.Rand.Next(3, 6), limbColor, margin);
-            if (!rightArm.IsEmpty) DrawLimbWithMask(bmp, mask, rightArm.X, rightArm.Y, 1, 1, RNG.Rand.Next(3, 6), limbColor, margin);
-            if (!leftLeg.IsEmpty) DrawLimbWithMask(bmp, mask, leftLeg.X, leftLeg.Y, -1, 2, RNG.Rand.Next(3, 6), limbColor, margin);
-            if (!rightLeg.IsEmpty) DrawLimbWithMask(bmp, mask, rightLeg.X, rightLeg.Y, 1, 2, RNG.Rand.Next(3, 6), limbColor, margin);
+            // scale lengths with sprite size
+            int baseLen = Math.Max(3, Math.Max(w, h) / 6);
+            int armLenMin = Math.Max(2, baseLen - 1);
+            int armLenMax = Math.Max(3, baseLen + 2);
+            int legLenMin = Math.Max(3, baseLen);
+            int legLenMax = Math.Max(4, baseLen + 4);
+
+            if (forcedStyle == LimbStyle.Random)
+                forcedStyle = (LimbStyle)(RNG.Rand.Next() % (Enum.GetValues(typeof(LimbStyle)).Length - 1));
+
+            // draw limb shapes into limbMask (no coloring yet)
+            if (!leftArm.IsEmpty) DrawAdvancedLimbMask(limbMask, leftArm.X, leftArm.Y, -1, 1, RNG.Rand.Next(armLenMin, armLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: false), isLeft: true, isLeg: false);
+            if (!rightArm.IsEmpty) DrawAdvancedLimbMask(limbMask, rightArm.X, rightArm.Y, 1, 1, RNG.Rand.Next(armLenMin, armLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: false), isLeft: false, isLeg: false);
+            if (!leftLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, leftLeg.X, leftLeg.Y, -1, 2, RNG.Rand.Next(legLenMin, legLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: true), isLeft: true, isLeg: true);
+            if (!rightLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, rightLeg.X, rightLeg.Y, 1, 2, RNG.Rand.Next(legLenMin, legLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: true), isLeft: false, isLeg: true);
+
+            // If no limb pixels were drawn, exit
+            bool any = false;
+            for (int x = 0; x < w && !any; x++)
+                for (int y = 0; y < h && !any; y++)
+                    if (limbMask[x, y]) any = true;
+            if (!any) return;
+
+            // Now color the limb image with the same noise/palette code used by body/head
+            // Outline = false for palette step: we'll draw outline after adding patterns
+            ApplyNoisePalette(limbImg, limbMask, baseColor, accentColor, nColors: nColors, outline: false, mode: paletteMode);
+
+            if (drawPatterns)
+            {
+                AddInternalPatterns(limbImg, limbMask, patternColor);
+            }
+
+            // Finally draw the outline so limbs have the same edge treatment as the body
+            DrawMaskOutline(limbImg, limbMask, outlineColor);
+
+            // Done — limbImg now contains properly-colored + outlined limb pixels on transparent background.
         }
 
-        static void DrawLimbWithMask(Image<Rgba32> bmp, bool[,] mask, int sx, int sy, int dirX, int dirY, int length, Rgba32 color, int margin)
+        // ---------- Helpers: mask-painting primitives (operates on boolean masks only) ----------
+        static void SetMaskCircle(bool[,] mask, int cx, int cy, int radius, int margin)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
-            int x = sx, y = sy;
-            for (int i = 0; i < length; i++)
+            if (radius <= 0)
             {
-                x += dirX; y += dirY;
-                if (x < margin || x >= w - margin || y < margin || y >= h - margin) break;
-                if (x >= 0 && y >= 0 && x < w && y < h) mask[x, y] = true;
-                PixelUtils.SafeSetPixel(bmp, x, y, color);
-                PixelUtils.SafeSetPixel(bmp, x + (dirX == 0 ? 1 : 0), y, color);
-                PixelUtils.SafeSetPixel(bmp, x, y + 1, color);
+                if (cx >= margin && cx < w - margin && cy >= margin && cy < h - margin)
+                    mask[cx, cy] = true;
+                return;
+            }
+
+            int xmin = Math.Max(cx - radius, margin);
+            int xmax = Math.Min(cx + radius, w - 1 - margin);
+            int ymin = Math.Max(cy - radius, margin);
+            int ymax = Math.Min(cy + radius, h - 1 - margin);
+            int r2 = radius * radius;
+
+            for (int x = xmin; x <= xmax; x++)
+                for (int y = ymin; y <= ymax; y++)
+                {
+                    int dx = x - cx, dy = y - cy;
+                    if (dx * dx + dy * dy <= r2) mask[x, y] = true;
+                }
+        }
+
+        static void SetMaskLine(bool[,] mask, int x0, int y0, int x1, int y1, int margin)
+        {
+            int w = mask.GetLength(0), h = mask.GetLength(1);
+            int dx = Math.Abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+            int dy = -Math.Abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+            int err = dx + dy;
+            while (true)
+            {
+                if (x0 >= margin && x0 < w - margin && y0 >= margin && y0 < h - margin) mask[x0, y0] = true;
+                if (x0 == x1 && y0 == y1) break;
+                int e2 = 2 * err;
+                if (e2 >= dy) { err += dy; x0 += sx; }
+                if (e2 <= dx) { err += dx; y0 += sy; }
+            }
+        }
+
+        // ---------- Draw limb shapes into mask (no coloring) ----------
+        static void DrawAdvancedLimbMask(bool[,] mask, int sx, int sy, int dirX, int dirY, int length, int margin, LimbStyle style, bool isLeft, bool isLeg)
+        {
+            int w = mask.GetLength(0), h = mask.GetLength(1);
+            if (length <= 0) return;
+
+            switch (style)
+            {
+                case LimbStyle.Simple:
+                    {
+                        int thickness = RNG.Rand.Next(1, 3);
+                        for (int i = 1; i <= length; i++)
+                        {
+                            int jitterX = RNG.Rand.Next(-1, 2);
+                            int jitterY = RNG.Rand.Next(0, 2);
+                            int x = sx + dirX * i + jitterX;
+                            int y = sy + dirY * i + jitterY;
+                            if (x < margin || x >= w - margin || y < margin || y >= h - margin) break;
+                            SetMaskCircle(mask, x, y, thickness, margin);
+                        }
+                    }
+                    break;
+
+                case LimbStyle.Thick:
+                    {
+                        for (int i = 1; i <= length; i++)
+                        {
+                            double t = i / (double)length;
+                            int radius = Math.Max(1, 2 - (int)Math.Floor(1.0 * t)); // taper 2 -> 1
+                            int bend = (int)Math.Round(Math.Sin(i * 0.6 + RNG.Rand.NextDouble()) * (isLeft ? -1 : 1));
+                            int x = sx + dirX * i + bend;
+                            int y = sy + dirY * i + (int)Math.Round(t * (isLeg ? 1.2 : 0.6));
+                            if (x < margin || x >= w - margin || y < margin || y >= h - margin) break;
+                            SetMaskCircle(mask, x, y, radius, margin);
+                        }
+
+                        // foot/hand end
+                        int ex = sx + dirX * length;
+                        int ey = sy + dirY * length;
+                        SetMaskCircle(mask, ex, ey, isLeg ? 2 : 1, margin);
+                    }
+                    break;
+
+                case LimbStyle.Segmented:
+                    {
+                        int segments = Math.Max(2, Math.Min(length, RNG.Rand.Next(2, 1 + Math.Max(2, length / 2))));
+                        var centers = new List<Point>();
+                        for (int s = 0; s < segments; s++)
+                        {
+                            double t = (s + 0.5) / segments;
+                            int cx = sx + (int)Math.Round(dirX * t * length + RNG.Rand.Next(-1, 2));
+                            int cy = sy + (int)Math.Round(dirY * t * length + (isLeg ? Math.Abs(t - 0.5) * 1.5 : Math.Sin(t * Math.PI) * 1.2));
+                            centers.Add(new Point(cx, cy));
+                            int segRadius = Math.Max(1, (int)Math.Round(2.2 * (1.0 - t * 0.6)));
+                            SetMaskCircle(mask, cx, cy, segRadius, margin);
+                        }
+
+                        // connectors
+                        for (int s = 0; s < centers.Count - 1; s++)
+                        {
+                            SetMaskLine(mask, centers[s].X, centers[s].Y, centers[s + 1].X, centers[s + 1].Y, margin);
+                        }
+                    }
+                    break;
+
+                case LimbStyle.Tentacle:
+                    {
+                        double phase = RNG.Rand.NextDouble() * Math.PI * 2.0;
+                        double amp = Math.Max(1.0, Math.Min(2.5, length * 0.12));
+                        for (int i = 1; i <= length; i++)
+                        {
+                            double t = i / (double)length;
+                            int offset = (int)Math.Round(Math.Sin(phase + t * Math.PI * 2.0) * amp * (isLeft ? -1 : 1));
+                            int x = sx + dirX * i + offset;
+                            int y = sy + dirY * i + (int)Math.Round(t * (isLeg ? 1.0 : 0.5));
+                            if (x < margin || x >= w - margin || y < margin || y >= h - margin) break;
+                            int radius = Math.Max(1, (int)Math.Round(1.4 * (1.0 - t * 0.95)));
+                            SetMaskCircle(mask, x, y, radius, margin);
+
+                            // suction-cup pixel occasionally
+                            if (RNG.Rand.NextDouble() < 0.12 && i % 2 == 0)
+                            {
+                                int cupX = x + (isLeft ? 1 : -1);
+                                int cupY = y;
+                                if (cupX >= margin && cupX < w - margin && cupY >= margin && cupY < h - margin)
+                                    mask[cupX, cupY] = true;
+                            }
+                        }
+                    }
+                    break;
+
+                case LimbStyle.Jointed:
+                    {
+                        double midT = 0.4 + RNG.Rand.NextDouble() * 0.25;
+                        int elbowX = sx + (int)Math.Round(dirX * length * midT) + RNG.Rand.Next(-1, 2);
+                        int elbowY = sy + (int)Math.Round(dirY * length * midT) + (isLeg ? RNG.Rand.Next(0, 2) : RNG.Rand.Next(-1, 2));
+
+                        // first segment
+                        SetMaskLine(mask, sx, sy, elbowX, elbowY, margin);
+                        SetMaskCircle(mask, elbowX, elbowY, 2, margin);
+
+                        // second segment to end
+                        int endX = sx + dirX * length + RNG.Rand.Next(-1, 2);
+                        int endY = sy + dirY * length + RNG.Rand.Next(0, 2);
+                        SetMaskLine(mask, elbowX, elbowY, endX, endY, margin);
+                        SetMaskCircle(mask, endX, endY, 1, margin);
+
+                        // optional fingers/claws for arms
+                        if (!isLeg && RNG.Rand.NextDouble() < 0.6)
+                        {
+                            int clawCount = RNG.Rand.Next(1, 4);
+                            for (int c = 0; c < clawCount; c++)
+                            {
+                                int cx = endX + (isLeft ? -1 : 1) * (1 + c);
+                                int cy = endY + c / 2;
+                                if (cx >= margin && cx < w - margin && cy >= margin && cy < h - margin)
+                                    mask[cx, cy] = true;
+                            }
+                        }
+                    }
+                    break;
+
+                case LimbStyle.Paw:
+                    {
+                        for (int i = 1; i <= Math.Max(1, length - 1); i++)
+                        {
+                            int x = sx + dirX * i;
+                            int y = sy + dirY * i;
+                            if (x < margin || x >= w - margin || y < margin || y >= h - margin) break;
+                            SetMaskCircle(mask, x, y, 1, margin);
+                        }
+                        int footX = sx + dirX * length;
+                        int footY = sy + dirY * length;
+                        SetMaskCircle(mask, footX, footY, 2, margin);
+
+                        int toeCount = RNG.Rand.Next(2, 4);
+                        for (int t = 0; t < toeCount; t++)
+                        {
+                            int tx = footX + (t - toeCount / 2);
+                            int ty = footY - 1;
+                            if (tx >= margin && tx < w - margin && ty >= margin && ty < h - margin)
+                                mask[tx, ty] = true;
+                        }
+                    }
+                    break;
+
+                default:
+                    // fallback: a simple line
+                    SetMaskLine(mask, sx + dirX, sy + dirY, sx + dirX * length, sy + dirY * length, margin);
+                    break;
+            }
+        }
+
+        // Small helper to pick random limb style when not forced
+        static LimbStyle RandomLimbStyle(bool isLeg)
+        {
+            double r = RNG.Rand.NextDouble();
+            if (isLeg)
+            {
+                if (r < 0.35) return LimbStyle.Paw;
+                if (r < 0.65) return LimbStyle.Thick;
+                if (r < 0.85) return LimbStyle.Jointed;
+                return LimbStyle.Simple;
+            }
+            else
+            {
+                if (r < 0.18) return LimbStyle.Tentacle;
+                if (r < 0.42) return LimbStyle.Segmented;
+                if (r < 0.78) return LimbStyle.Jointed;
+                return LimbStyle.Thick;
             }
         }
 

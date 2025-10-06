@@ -17,6 +17,7 @@ namespace WebsiteBlazor.Classes
         public int Seed = 27011998;
         public PaletteMode paletteMode = PaletteMode.Monochrome;
         public int numberOfColors = 4;
+        public LimbStyle limbStyle = LimbStyle.Random;
     }
 
     public enum NoiseStyle { Blobby, Balanced, Detailed, Random }

@@ -89,6 +89,16 @@
 			<button @onclick="(() => _settings.Generator = 1)" class="@(_settings.Generator == 1 ? "active-button" : "")">New (Animated)</button>
 		</fieldset>
 		<fieldset>
+			<legend>Limb Style</legend>
+			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Simple)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Simple ? "active-button" : "")">Simple</button>
+			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Thick)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Thick ? "active-button" : "")">Thick</button>
+			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Segmented)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Segmented ? "active-button" : "")">Segmented</button>
+			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Tentacle)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Tentacle ? "active-button" : "")">Tentacle</button>
+			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Jointed)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Jointed ? "active-button" : "")">Jointed</button>
+			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Paw)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Paw ? "active-button" : "")">Paw</button>
+			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Random)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Random ? "active-button" : "")">Random Style</button>
+		</fieldset>
+		<fieldset>
 			<legend>Patterns (random lines, currently ugly)</legend>
 			<button @onclick="(() => _settings.DrawPatterns = false)" class="@(_settings.DrawPatterns == false ? "active-button" : "")">No</button>
 			<button @onclick="(() => _settings.DrawPatterns = true)" class="@(_settings.DrawPatterns == true ? "active-button" : "")">Yes</button>
