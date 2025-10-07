@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using WebsiteBlazor.Classes;
 
 namespace AutoSpriteCreator
 {
@@ -26,6 +27,17 @@ namespace AutoSpriteCreator
         Jointed,    // two-segment limb with elbow/knee
         Paw,         // short stubby leg with rounded foot (good for legs)
         Random
+    }
+
+    public enum EyeStyle
+    {
+        BigSparkle = 0, // big round eyes, strong highlights + sparkles
+        WideIris = 1, // iris nearly fills the sclera (cute anime-like)
+        Almond = 2, // slightly horizontally stretched eye
+        Sleepy = 3, // half-lidded, small iris
+        Winking = 4, // closed eye (drawn as a cute curve)
+        Button = 5, // tiny button-like eyes for extra cuteness
+        Random = 6,
     }
 
     public static class FeatureDrawer
@@ -301,69 +313,439 @@ namespace AutoSpriteCreator
             }
         }
 
-        public static void AddEyes(Image<Rgba32> bmp, bool[,] mask, Rgba32 accent)
+        public static void AddEyes(Image<Rgba32> bmp, bool[,] mask, Rgba32 accent, Settings settings)
+        {
+            // backward-compatible entry point; leaves eye count and style to randomness
+            AddEyes(bmp, mask, accent, settings, null);
+        }
+
+        /// <summary>
+        /// Draws cute eyes. If eyeCountOverride is provided, that many eyes will be drawn (clamped to 1..6).
+        /// If null, a small random count is chosen based on head size.
+        /// eyeStyle can be EyeStyle.Random to randomize per-eye, or a specific EyeStyle.
+        /// headMask should be supplied if you have a dedicated head mask; when provided, positions and bounding
+        /// box are anchored to that mask so eye placement follows your head edits exactly.
+        /// </summary>
+        public static void AddEyes(Image<Rgba32> bmp, bool[,] mask, Rgba32 accent, Settings settings, bool[,] headMask = null)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
-            Point headCenter = EstimateHeadCenter(mask, h / 3);
-            if (headCenter.IsEmpty) return;
 
-            int eyeCount = RNG.Rand.Next(1, 4);
-            int spacing = Math.Max(2, w / 10);
-            int startX = headCenter.X - spacing * (eyeCount - 1) / 2;
-            int eyeY = headCenter.Y;
+            // Determine head centroid and bounding box. If headMask is provided, anchor to it exactly.
+            Point headCenter = Point.Empty;
+            int left = w, right = -1, top = h, bottom = -1;
 
-            int style = RNG.Rand.Next(0, 6);
-
-            for (int i = 0; i < eyeCount; i++)
+            if (headMask != null)
             {
-                int ex = startX + i * spacing;
-                Point place = PixelUtils.FindNearestMaskPoint(mask, ex, eyeY, 6);
-                if (place.IsEmpty) continue;
-                ex = place.X; eyeY = place.Y;
+                headCenter = EstimateHeadCenterFromMask(headMask);
+                for (int x = 0; x < w; x++)
+                    for (int y = 0; y < h; y++)
+                        if (headMask[x, y])
+                        {
+                            if (x < left) left = x;
+                            if (x > right) right = x;
+                            if (y < top) top = y;
+                            if (y > bottom) bottom = y;
+                        }
+            }
+            else
+            {
+                // fallback: compute using upper portion of the full mask (backwards compatible)
+                headCenter = EstimateHeadCenter(mask, Math.Max(1, h / 3));
+                for (int x = 0; x < w; x++)
+                    for (int y = 0; y < Math.Min(h, Math.Max(1, h / 3)); y++)
+                        if (mask[x, y])
+                        {
+                            if (x < left) left = x;
+                            if (x > right) right = x;
+                            if (y < top) top = y;
+                            if (y > bottom) bottom = y;
+                        }
+            }
 
-                int r = Math.Max(1, w / 24);
+            if (right < left || bottom < top)
+            {
+                // make a small default head around center
+                if (headCenter.IsEmpty) headCenter = new Point(w / 2, Math.Max(0, h / 6));
+                left = Math.Max(0, headCenter.X - Math.Max(2, w / 12));
+                right = Math.Min(w - 1, headCenter.X + Math.Max(2, w / 12));
+                top = Math.Max(0, headCenter.Y - Math.Max(1, h / 24));
+                bottom = Math.Min(h - 1, headCenter.Y + Math.Max(1, h / 24));
+            }
 
-                switch (style)
+            int headWidth = Math.Max(1, right - left + 1);
+            int headHeight = Math.Max(1, bottom - top + 1);
+
+            // decide eye count
+            int eyeCount = 0;
+            if (settings.eyeCount.HasValue) 
+            { 
+                if(settings.eyeCount > 0 && settings.eyeCount < 7)
+                    eyeCount = (int)settings.eyeCount;
+            }
+            if (eyeCount == 0) 
+            {
+                // heuristics: small heads -> 1, medium -> 1-2, large -> 2-4
+                if (headWidth < w * 0.15) eyeCount = 1;
+                else if (headWidth < w * 0.28) eyeCount = RNG.Rand.Next(1, 3); // 1..2
+                else eyeCount = RNG.Rand.Next(1, Math.Min(4, Math.Max(2, headWidth / Math.Max(1, w / 8))) + 1);
+            }
+
+            // special logic for two eyes:
+            // - sometimes place them on the sides (current behavior),
+            // - sometimes place them front-facing (near headCenter) so they look like human eyes.
+            // The choice is random but biased by how centered the head is.
+            bool preferFrontal = false;
+            if (eyeCount == 2)
+            {
+                // normalized head center in [0..1] relative to head bounding box
+                double centerNorm = 0.5;
+                if (!headCenter.IsEmpty) centerNorm = (headCenter.X - left) / (double)Math.Max(1, headWidth);
+                // dist 0 => perfect center, 1 => far edge
+                double dist = Math.Abs(centerNorm - 0.5) / 0.5;
+                // frontal probability increases when head center is near bounding-box center.
+                // Range roughly: 25% (very lopsided head) .. 95% (centered head).
+                double frontalProbability = 0.25 + (1.0 - dist) * 0.4; // WAS 0.25 + ...
+                preferFrontal = RNG.Rand.NextDouble() < frontalProbability;
+            }
+
+            // compute candidate x positions evenly across head width (anchored to headMask bounding box)
+            int usableWidth = Math.Max(1, headWidth - 2);
+            double spacing = eyeCount > 1 ? (double)(usableWidth) / (eyeCount - 1) : 0.0;
+            var candidates = new List<Point>();
+            bool[,] searchMask = headMask ?? mask;
+
+            // helper: try adding a candidate point found near base coords
+            void TryAddCandidate(int baseX, int baseY, int radius)
+            {
+                baseX = Math.Clamp(baseX, 0, w - 1);
+                baseY = Math.Clamp(baseY, 0, h - 1);
+                var p = PixelUtils.FindNearestMaskPoint(searchMask, baseX, baseY, radius);
+                if (!p.IsEmpty) candidates.Add(p);
+            }
+
+            if (eyeCount == 2 && preferFrontal)
+            {
+                // frontal placement: both eyes near the head center (left/right of centroid)
+                int offset = Math.Max(1, headWidth / 6); // how far from center to place each eye
+                int baseY = top + Math.Max(1, (int)Math.Round(headHeight * 0.35));
+                int radius = Math.Max(2, Math.Min(headHeight, Math.Max(3, headWidth / 6)));
+
+                TryAddCandidate(headCenter.X - offset + RNG.Rand.Next(-1, 2), baseY + RNG.Rand.Next(-1, 2), radius);
+                TryAddCandidate(headCenter.X + offset + RNG.Rand.Next(-1, 2), baseY + RNG.Rand.Next(-1, 2), radius);
+
+                // If frontal search failed to find both eyes, fall back to side/spacing approach below.
+                if (candidates.Count < 2)
                 {
-                    case 0:
-                        PixelUtils.FillCircle(bmp, ex, eyeY, r + 1, Rgba32.ParseHex("#FFFFFFFF"));
-                        PixelUtils.SafeSetPixel(bmp, ex, eyeY, Rgba32.ParseHex("#00000000"));
-                        break;
-                    case 1:
-                        PixelUtils.FillCircle(bmp, ex, eyeY, r + 1, accent);
-                        PixelUtils.SafeSetPixel(bmp, ex, eyeY, Rgba32.ParseHex("#00000000"));
-                        PixelUtils.SafeSetPixel(bmp, ex - 1, eyeY - 1, Rgba32.ParseHex("#FFFFFFFF"));
-                        break;
-                    case 2:
-                        PixelUtils.FillCircle(bmp, ex, eyeY, r + 1, accent);
-                        for (int dy = -r; dy <= r; dy++)
-                            PixelUtils.SafeSetPixel(bmp, ex, eyeY + dy, Rgba32.ParseHex("#00000000"));
-                        break;
-                    case 3:
-                        PixelUtils.FillCircle(bmp, ex, eyeY, r + 1, accent);
-                        for (int dx = -r; dx <= r; dx++)
-                            PixelUtils.SafeSetPixel(bmp, ex + dx, eyeY, Rgba32.ParseHex("#00000000"));
-                        break;
-                    case 4:
-                        PixelUtils.FillCircle(bmp, ex, eyeY, r + 1, Rgba32.ParseHex("#FFFFFFFF"));
-                        PixelUtils.SafeSetPixel(bmp, ex, eyeY, Rgba32.ParseHex("#00000000"));
-                        PixelUtils.SafeSetPixel(bmp, ex - 1, eyeY - 2, ColorUtils.Darken(Rgba32.ParseHex("#FFFFFFFF"), 0.6f));
-                        PixelUtils.SafeSetPixel(bmp, ex, eyeY - 2, ColorUtils.Darken(Rgba32.ParseHex("#FFFFFFFF"), 0.6f));
-                        break;
-                    case 5:
-                        PixelUtils.FillCircle(bmp, ex, eyeY, r + 1, accent);
-                        PixelUtils.SafeSetPixel(bmp, ex, eyeY, Rgba32.ParseHex("#00000000"));
-                        for (int dx = -1; dx <= 1; dx++)
-                            for (int dy = -1; dy <= 1; dy++)
-                                if (Math.Abs(dx) + Math.Abs(dy) == 1 && PixelUtils.IsPointInMask(mask, ex + dx, eyeY + dy))
-                                    PixelUtils.SafeSetPixel(bmp, ex + dx, eyeY + dy, ColorUtils.Lighten(accent, 0.5f));
-                        break;
-                    default:
-                        PixelUtils.FillCircle(bmp, ex, eyeY, r + 1, Rgba32.ParseHex("#FFFFFFFF"));
-                        PixelUtils.SafeSetPixel(bmp, ex, eyeY, Rgba32.ParseHex("#00000000"));
-                        break;
+                    candidates.Clear();
+                    for (int i = 0; i < eyeCount; i++)
+                    {
+                        int baseX = eyeCount == 1 ? headCenter.X : left + (int)Math.Round(i * spacing);
+                        int jitterX = RNG.Rand.Next(-1, 2);
+                        int ex = Math.Clamp(baseX + jitterX, 0, w - 1);
+                        int baseY2 = top + Math.Max(1, (int)Math.Round(headHeight * 0.35)) + RNG.Rand.Next(-1, 2);
+                        int radius2 = Math.Max(2, Math.Min(headHeight, Math.Max(3, headWidth / 6)));
+                        TryAddCandidate(ex, baseY2, radius2);
+                    }
                 }
             }
+            else
+            {
+                // default spacing / side placement
+                for (int i = 0; i < eyeCount; i++)
+                {
+                    int baseX = eyeCount == 1 ? headCenter.X : left + (int)Math.Round(i * spacing);
+                    int jitterX = RNG.Rand.Next(-1, 2);
+                    int ex = Math.Clamp(baseX + jitterX, 0, w - 1);
+                    // prefer placing eyes slightly above the vertical midline of the head box for cuteness
+                    int baseY = top + Math.Max(1, (int)Math.Round(headHeight * 0.35)) + RNG.Rand.Next(-1, 2);
+                    // search radius - relative to head size
+                    int radius = Math.Max(2, Math.Min(headHeight, Math.Max(3, headWidth / 6)));
+
+                    TryAddCandidate(ex, baseY, radius);
+                }
+            }
+
+            // If we still have no candidates (rare), try a final broad search centered on the head center.
+            if (candidates.Count == 0)
+            {
+                int fallbackRadius = Math.Max(2, headWidth / 3);
+                TryAddCandidate(headCenter.X, top + Math.Max(1, headHeight / 3), fallbackRadius);
+            }
+
+            if (candidates.Count == 0) return;
+
+            // remove candidates that are too close to each other (simple greedy)
+            candidates.Sort((a, b) => a.X.CompareTo(b.X));
+            var filtered = new List<Point>();
+            int minDist2 = (int)Math.Pow(Math.Max(1, w / 30), 2);
+            foreach (var p in candidates)
+            {
+                bool ok = true;
+                foreach (var q in filtered)
+                {
+                    int dx = p.X - q.X;
+                    int dy = p.Y - q.Y;
+                    if (dx * dx + dy * dy < minDist2) { ok = false; break; }
+                }
+                if (ok) filtered.Add(p);
+            }
+
+            if (filtered.Count == 0) return;
+
+            // draw each eye — size scales with head width but kept within readable bounds
+            // determine style for eyes
+            EyeStyle styleToUse = settings.eyeStyle;
+            if (styleToUse == EyeStyle.Random)
+            {
+                // pick a random non-Random style
+                var vals = Enum.GetValues(typeof(EyeStyle));
+                styleToUse = (EyeStyle)vals.GetValue(RNG.Rand.Next(1, vals.Length));
+            }
+
+            foreach (var p in filtered)
+            {
+                int r = Math.Max(1, Math.Clamp(headWidth / (6 + eyeCount), w / 32, w / 12));
+
+                // IMPORTANT: pass the headMask if available so DrawCuteEye can clip/anchor correctly
+                DrawCuteEye(bmp, headMask ?? mask, p.X, p.Y, r, accent, styleToUse);
+            }
+        }
+
+        static void DrawCuteEye(Image<Rgba32> bmp, bool[,] mask, int cx, int cy, int r, Rgba32 accent, EyeStyle style)
+        {
+            int w = mask.GetLength(0), h = mask.GetLength(1);
+            if (cx < 0 || cy < 0 || cx >= w || cy >= h) return;
+
+            Rgba32 white = Rgba32.ParseHex("#FFFFFFFF");
+            Rgba32 black = Rgba32.ParseHex("#000000FF");
+            Rgba32 irisBase = ColorUtils.Lighten(accent, 0.22f);
+            Rgba32 irisDark = ColorUtils.Darken(accent, 0.35f);
+            Rgba32 outline = ColorUtils.Darken(accent, 0.45f);
+
+            // Helper key for hashset
+            long Key(int x, int y) => ((long)x << 32) | (uint)y;
+
+            // We'll collect the exact pixels where sclera was drawn so outline can attach only to them.
+            var scleraPixels = new HashSet<long>();
+
+            // Collect mask-visible pixels inside a circle radius rr (used after we draw sclera)
+            void CollectSclera(int rr)
+            {
+                scleraPixels.Clear();
+                int rr2 = rr * rr;
+                for (int dx = -rr; dx <= rr; dx++)
+                    for (int dy = -rr; dy <= rr; dy++)
+                    {
+                        int px = cx + dx, py = cy + dy;
+                        if (px < 0 || py < 0 || px >= w || py >= h) continue;
+                        if (dx * dx + dy * dy <= rr2 && PixelUtils.IsPointInMask(mask, px, py))
+                            scleraPixels.Add(Key(px, py));
+                    }
+            }
+
+            // Draw outline only on pixels that are outside mask and adjacent to any sclera pixel.
+            void DrawOutlineAttachedToSclera()
+            {
+                if (scleraPixels.Count == 0) return;
+                var written = new HashSet<long>();
+                foreach (var k in scleraPixels)
+                {
+                    int sx = (int)(k >> 32);
+                    int sy = (int)(k & 0xffffffff);
+                    for (int ox = -1; ox <= 1; ox++)
+                        for (int oy = -1; oy <= 1; oy++)
+                        {
+                            if (ox == 0 && oy == 0) continue;
+                            int nx = sx + ox, ny = sy + oy;
+                            if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                            long nk = Key(nx, ny);
+                            if (written.Contains(nk)) continue;
+                            // only draw outline outside the mask
+                            if (!PixelUtils.IsPointInMask(mask, nx, ny))
+                            {
+                                PixelUtils.SafeSetPixel(bmp, nx, ny, outline);
+                                written.Add(nk);
+                            }
+                        }
+                }
+            }
+
+            switch (style)
+            {
+                case EyeStyle.BigSparkle:
+                    {
+                        int sclR = r + 1;
+                        // draw sclera clipped
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, sclR, white);
+                        CollectSclera(sclR);
+                        DrawOutlineAttachedToSclera();
+
+                        int ri = Math.Max(1, (int)Math.Round(r * 0.75));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, ri, ColorUtils.Lighten(irisBase, 0.12f));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, Math.Max(1, ri - 1), irisDark);
+
+                        int rp = Math.Max(1, (int)Math.Round(ri * 0.4));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, rp, black);
+
+                        int hx = cx - Math.Max(1, ri / 2);
+                        int hy = cy - Math.Max(1, ri / 2);
+                        if (hx >= 0 && hy >= 0 && hx < w && hy < h && PixelUtils.IsPointInMask(mask, hx, hy))
+                        {
+                            PixelUtils.SafeSetPixel(bmp, hx, hy, white);
+                            if (hx + 1 < w && PixelUtils.IsPointInMask(mask, hx + 1, hy)) PixelUtils.SafeSetPixel(bmp, hx + 1, hy, white);
+                            if (hy + 1 < h && PixelUtils.IsPointInMask(mask, hx, hy + 1)) PixelUtils.SafeSetPixel(bmp, hx, hy + 1, white);
+                        }
+                    }
+                    break;
+
+                case EyeStyle.WideIris:
+                    {
+                        int sclR = r + 1;
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, sclR, white);
+                        CollectSclera(sclR);
+                        DrawOutlineAttachedToSclera();
+
+                        int ri = Math.Max(1, (int)Math.Round(r * 0.9));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, ri, irisBase);
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, Math.Max(1, ri - 1), irisDark);
+                        int rp = Math.Max(1, (int)Math.Round(ri * 0.45));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, rp, black);
+
+                        int hx = cx - Math.Max(1, ri / 2);
+                        int hy = cy - Math.Max(1, ri / 3);
+                        if (hx >= 0 && hy >= 0 && hx < w && hy < h && PixelUtils.IsPointInMask(mask, hx, hy)) PixelUtils.SafeSetPixel(bmp, hx, hy, white);
+                        if (hx + 1 < w && hy + 1 < h && PixelUtils.IsPointInMask(mask, hx + 1, hy + 1)) PixelUtils.SafeSetPixel(bmp, hx + 1, hy + 1, white);
+                    }
+                    break;
+
+                case EyeStyle.Almond:
+                    {
+                        int rA = Math.Max(1, (int)Math.Round(r * 0.8));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx - 1, cy, rA, white);
+                        PixelUtils.FillCircleClipped(bmp, mask, cx + 1, cy, rA, white);
+
+                        // collect union of both white circles
+                        scleraPixels.Clear();
+                        int rr2 = rA * rA;
+                        for (int dx = -rA; dx <= rA; dx++)
+                            for (int dy = -rA; dy <= rA; dy++)
+                            {
+                                int px = cx - 1 + dx, py = cy + dy;
+                                if (px >= 0 && py >= 0 && px < w && py < h && dx * dx + dy * dy <= rr2 && PixelUtils.IsPointInMask(mask, px, py))
+                                    scleraPixels.Add(Key(px, py));
+                                px = cx + 1 + dx;
+                                if (px >= 0 && py >= 0 && px < w && py < h && dx * dx + dy * dy <= rr2 && PixelUtils.IsPointInMask(mask, px, py))
+                                    scleraPixels.Add(Key(px, py));
+                            }
+                        DrawOutlineAttachedToSclera();
+
+                        int ri = Math.Max(1, (int)Math.Round(r * 0.55));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, ri, irisBase);
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, Math.Max(1, ri - 1), irisDark);
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, Math.Max(1, (int)Math.Round(ri * 0.45)), black);
+
+                        int lashY = cy - Math.Max(1, r / 2);
+                        for (int dx = -ri; dx <= ri; dx++)
+                        {
+                            int px = cx + dx;
+                            if (px >= 0 && px < w && lashY >= 0 && lashY < h && PixelUtils.IsPointInMask(mask, px, lashY))
+                                PixelUtils.SafeSetPixel(bmp, px, lashY, ColorUtils.Darken(white, 0.9f));
+                        }
+                    }
+                    break;
+
+                case EyeStyle.Sleepy:
+                    {
+                        // IMPORTANT: do NOT draw a full white sclera here.
+                        int ri = Math.Max(1, (int)Math.Round(r * 0.5));
+                        // small visible iris (clipped) and pupil
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy + 1, ri, irisBase);
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy + 1, Math.Max(1, (int)Math.Round(ri * 0.4)), black);
+
+                        // lid pixels (only drawn where inside the mask) to create half-closed look
+                        int lidTop = cy - (int)Math.Round(r * 0.3);
+                        for (int dx = -ri - 1; dx <= ri + 1; dx++)
+                        {
+                            int px = cx + dx;
+                            if (px < 0 || px >= w || lidTop < 0 || lidTop >= h) continue;
+                            if (PixelUtils.IsPointInMask(mask, px, lidTop))
+                                PixelUtils.SafeSetPixel(bmp, px, lidTop, ColorUtils.Darken(white, 0.88f));
+                        }
+                    }
+                    break;
+
+                case EyeStyle.Winking:
+                    {
+                        // IMPORTANT: do NOT draw a full white sclera for wink.
+                        // Draw a small curved line / arc inside mask to represent the closed eye.
+                        var winkColor = ColorUtils.Darken(white, 0.88f);
+                        int ax = cx - 1, ay = cy;
+                        if (ax >= 0 && ay >= 0 && ax < w && ay < h && PixelUtils.IsPointInMask(mask, ax, ay)) PixelUtils.SafeSetPixel(bmp, ax, ay, winkColor);
+                        if (cx >= 0 && cy + 1 >= 0 && cx < w && cy + 1 < h && PixelUtils.IsPointInMask(mask, cx, cy + 1)) PixelUtils.SafeSetPixel(bmp, cx, cy + 1, winkColor);
+                        if (cx + 1 >= 0 && cy >= 0 && cx + 1 < w && cy < h && PixelUtils.IsPointInMask(mask, cx + 1, cy)) PixelUtils.SafeSetPixel(bmp, cx + 1, cy, winkColor);
+                    }
+                    break;
+
+                case EyeStyle.Button:
+                    {
+                        int smallR = Math.Max(1, (int)Math.Round(r * 0.35));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, smallR, black);
+                        if (cx - 1 >= 0 && cy - 1 >= 0 && PixelUtils.IsPointInMask(mask, cx - 1, cy - 1)) PixelUtils.SafeSetPixel(bmp, cx - 1, cy - 1, white);
+                    }
+                    break;
+
+                default:
+                    {
+                        // fallback: draw regular-eye with sclera and outline attached to it
+                        int sclR = r + 1;
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, sclR, white);
+                        CollectSclera(sclR);
+                        DrawOutlineAttachedToSclera();
+
+                        int ri = Math.Max(1, (int)Math.Round(r * 0.7));
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, ri, irisBase);
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, Math.Max(1, ri - 1), irisDark);
+                        PixelUtils.FillCircleClipped(bmp, mask, cx, cy, Math.Max(1, (int)Math.Round(ri * 0.45)), black);
+                    }
+                    break;
+            }
+        }
+
+
+        static Point EstimateHeadCenter(bool[,] mask, int maxY)
+        {
+            int w = mask.GetLength(0), h = mask.GetLength(1);
+            int sumX = 0, sumY = 0, count = 0;
+
+            for (int x = 0; x < w; x++)
+                for (int y = 0; y < Math.Min(h, maxY); y++)
+                    if (mask[x, y])
+                    {
+                        sumX += x;
+                        sumY += y;
+                        count++;
+                    }
+
+            if (count == 0) return Point.Empty;
+            return new Point(sumX / count, sumY / count);
+        }
+
+        // New: compute centroid from a dedicated head mask (preferred for anchoring eyes precisely)
+        static Point EstimateHeadCenterFromMask(bool[,] headMask)
+        {
+            if (headMask == null) return Point.Empty;
+            int w = headMask.GetLength(0), h = headMask.GetLength(1);
+            int sumX = 0, sumY = 0, count = 0;
+            for (int x = 0; x < w; x++)
+                for (int y = 0; y < h; y++)
+                    if (headMask[x, y])
+                    {
+                        sumX += x;
+                        sumY += y;
+                        count++;
+                    }
+            if (count == 0) return Point.Empty;
+            return new Point(sumX / count, sumY / count);
         }
 
         public static void AddMouth(Image<Rgba32> bmp, bool[,] mask)
@@ -705,24 +1087,6 @@ namespace AutoSpriteCreator
                     if (!mask[nx, ny]) return true;
                 }
             return false;
-        }
-
-        static Point EstimateHeadCenter(bool[,] mask, int maxY)
-        {
-            int w = mask.GetLength(0), h = mask.GetLength(1);
-            int sumX = 0, sumY = 0, count = 0;
-
-            for (int x = 0; x < w; x++)
-                for (int y = 0; y < Math.Min(h, maxY); y++)
-                    if (mask[x, y])
-                    {
-                        sumX += x;
-                        sumY += y;
-                        count++;
-                    }
-
-            if (count == 0) return Point.Empty;
-            return new Point(sumX / count, sumY / count);
         }
     }
 }

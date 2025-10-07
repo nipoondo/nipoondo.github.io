@@ -89,6 +89,20 @@
 			<button @onclick="(() => _settings.Generator = 1)" class="@(_settings.Generator == 1 ? "active-button" : "")">New (Animated)</button>
 		</fieldset>
 		<fieldset>
+			<legend>Eye Style</legend>
+			<button @onclick="(() => _settings.eyeStyle = AutoSpriteCreator.EyeStyle.BigSparkle)" class="@(_settings.eyeStyle == AutoSpriteCreator.EyeStyle.BigSparkle ? "active-button" : "")">Big Sparkle</button>
+			<button @onclick="(() => _settings.eyeStyle = AutoSpriteCreator.EyeStyle.WideIris)" class="@(_settings.eyeStyle == AutoSpriteCreator.EyeStyle.WideIris ? "active-button" : "")">Wide Iris</button>
+			<button @onclick="(() => _settings.eyeStyle = AutoSpriteCreator.EyeStyle.Almond)" class="@(_settings.eyeStyle == AutoSpriteCreator.EyeStyle.Almond ? "active-button" : "")">Almond</button>
+			<button @onclick="(() => _settings.eyeStyle = AutoSpriteCreator.EyeStyle.Sleepy)" class="@(_settings.eyeStyle == AutoSpriteCreator.EyeStyle.Sleepy ? "active-button" : "")">Sleepy</button>
+			<button @onclick="(() => _settings.eyeStyle = AutoSpriteCreator.EyeStyle.Winking)" class="@(_settings.eyeStyle == AutoSpriteCreator.EyeStyle.Winking ? "active-button" : "")">Winking</button>
+			<button @onclick="(() => _settings.eyeStyle = AutoSpriteCreator.EyeStyle.Button)" class="@(_settings.eyeStyle == AutoSpriteCreator.EyeStyle.Button ? "active-button" : "")">Button</button>
+			<button @onclick="(() => _settings.eyeStyle = AutoSpriteCreator.EyeStyle.Random)" class="@(_settings.eyeStyle == AutoSpriteCreator.EyeStyle.Random ? "active-button" : "")">Random Style</button>
+		</fieldset>
+		<fieldset>
+			<legend>Number of Eyes (@(_settings.eyeCount > 6 ? "Random" : _settings.eyeCount))</legend>
+			<input type="range" min="1" max="7" @bind="_settings.eyeCount" />
+		</fieldset>
+		<fieldset>
 			<legend>Limb Style</legend>
 			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Simple)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Simple ? "active-button" : "")">Simple</button>
 			<button @onclick="(() => _settings.limbStyle = AutoSpriteCreator.LimbStyle.Thick)" class="@(_settings.limbStyle == AutoSpriteCreator.LimbStyle.Thick ? "active-button" : "")">Thick</button>

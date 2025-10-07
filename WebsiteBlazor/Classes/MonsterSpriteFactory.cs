@@ -54,7 +54,7 @@ namespace WebsiteBlazor.Classes
             headImg.Mutate(ctx => ctx.BackgroundColor(new Rgba32(0, 0, 0, 0)));
             // You may want slightly fewer palette colors for head to read better
             FeatureDrawer.ApplyNoisePalette(headImg, headMask, baseColor, accentColor, nColors: settings.numberOfColors, outline: false, mode: settings.paletteMode);
-            FeatureDrawer.AddEyes(headImg, headMask, accentColor);
+            FeatureDrawer.AddEyes(headImg, headMask, accentColor, settings, headMask: headMask);
             FeatureDrawer.AddMouth(headImg, headMask);
             FeatureDrawer.DrawMaskOutline(headImg, headMask, outlineColor);
 

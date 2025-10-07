@@ -18,6 +18,8 @@ namespace WebsiteBlazor.Classes
         public PaletteMode paletteMode = PaletteMode.Monochrome;
         public int numberOfColors = 4;
         public LimbStyle limbStyle = LimbStyle.Random;
+        public EyeStyle eyeStyle = EyeStyle.Random;
+        public int? eyeCount = 7;
     }
 
     public enum NoiseStyle { Blobby, Balanced, Detailed, Random }

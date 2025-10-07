@@ -123,7 +123,7 @@ namespace AutoSpriteCreator
             }
 
             // 5) Draw features (eyes, mouth, limbs) on top of patterns
-            FeatureDrawer.AddEyes(bmp, mask, accentColor);
+            FeatureDrawer.AddEyes(bmp, mask, accentColor, settings);
             FeatureDrawer.AddMouth(bmp, mask);
             FeatureDrawer.AddAnchoredLimbs(bmp, mask, accentColor, settings.Margin);
 
