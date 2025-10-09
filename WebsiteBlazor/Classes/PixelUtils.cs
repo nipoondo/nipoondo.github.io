@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace AutoSpriteCreator
+namespace AutoSpriteGenerator
 {
     // Reuse the same Point struct as in FeatureDrawer
     public struct Point

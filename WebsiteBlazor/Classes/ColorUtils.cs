@@ -2,7 +2,7 @@
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace AutoSpriteCreator
+namespace AutoSpriteGenerator
 {
     public static class ColorUtils
     {
@@ -39,7 +39,7 @@ namespace AutoSpriteCreator
             return new Rgba32((byte)Clamp(r), (byte)Clamp(g), (byte)Clamp(b), 255);
         }
 
-        static int Clamp(int v) => Math.Max(0, Math.Min(255, v));
+        private static int Clamp(int v) => Math.Max(0, Math.Min(255, v));
 
         public static Rgba32 ColorFromHSV(double hue, double sat, double val)
         {

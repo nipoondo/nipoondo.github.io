@@ -4,42 +4,8 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using WebsiteBlazor.Classes;
 
-namespace AutoSpriteCreator
+namespace AutoSpriteGenerator
 {
-    public enum PaletteMode
-    {
-        Monochrome,
-        Analogous,
-        Complementary,
-        SplitComplementary,
-        Triadic,
-        TwoToneRandom,   // two strong hues, softer shading
-        SoftStripes,      // produces an alternating-hue palette (for stripe-like bands)
-        Random
-    }
-
-    public enum LimbStyle
-    {
-        Simple,     // thicker single stroke with slight jitter
-        Thick,      // chunky tapering limb
-        Segmented,  // series of overlapping rounded segments (like armor/sausages)
-        Tentacle,   // wavy/tapering limb
-        Jointed,    // two-segment limb with elbow/knee
-        Paw,         // short stubby leg with rounded foot (good for legs)
-        Random
-    }
-
-    public enum EyeStyle
-    {
-        BigSparkle = 0, // big round eyes, strong highlights + sparkles
-        WideIris = 1, // iris nearly fills the sclera (cute anime-like)
-        Almond = 2, // slightly horizontally stretched eye
-        Sleepy = 3, // half-lidded, small iris
-        Winking = 4, // closed eye (drawn as a cute curve)
-        Button = 5, // tiny button-like eyes for extra cuteness
-        Random = 6,
-    }
-
     public static class FeatureDrawer
     {
         public static void ApplyNoisePalette(Image<Rgba32> bmp, bool[,] mask,
@@ -313,12 +279,6 @@ namespace AutoSpriteCreator
             }
         }
 
-        public static void AddEyes(Image<Rgba32> bmp, bool[,] mask, Rgba32 accent, Settings settings)
-        {
-            // backward-compatible entry point; leaves eye count and style to randomness
-            AddEyes(bmp, mask, accent, settings, null);
-        }
-
         /// <summary>
         /// Draws cute eyes. If eyeCountOverride is provided, that many eyes will be drawn (clamped to 1..6).
         /// If null, a small random count is chosen based on head size.
@@ -326,9 +286,9 @@ namespace AutoSpriteCreator
         /// headMask should be supplied if you have a dedicated head mask; when provided, positions and bounding
         /// box are anchored to that mask so eye placement follows your head edits exactly.
         /// </summary>
-        public static void AddEyes(Image<Rgba32> bmp, bool[,] mask, Rgba32 accent, Settings settings, bool[,] headMask = null)
+        public static void AddEyes(Image<Rgba32> bmp, Rgba32 accent, Settings settings, bool[,] headMask = null)
         {
-            int w = mask.GetLength(0), h = mask.GetLength(1);
+            int w = headMask.GetLength(0), h = headMask.GetLength(1);
 
             // Determine head centroid and bounding box. If headMask is provided, anchor to it exactly.
             Point headCenter = Point.Empty;
@@ -340,20 +300,6 @@ namespace AutoSpriteCreator
                 for (int x = 0; x < w; x++)
                     for (int y = 0; y < h; y++)
                         if (headMask[x, y])
-                        {
-                            if (x < left) left = x;
-                            if (x > right) right = x;
-                            if (y < top) top = y;
-                            if (y > bottom) bottom = y;
-                        }
-            }
-            else
-            {
-                // fallback: compute using upper portion of the full mask (backwards compatible)
-                headCenter = EstimateHeadCenter(mask, Math.Max(1, h / 3));
-                for (int x = 0; x < w; x++)
-                    for (int y = 0; y < Math.Min(h, Math.Max(1, h / 3)); y++)
-                        if (mask[x, y])
                         {
                             if (x < left) left = x;
                             if (x > right) right = x;
@@ -412,7 +358,7 @@ namespace AutoSpriteCreator
             int usableWidth = Math.Max(1, headWidth - 2);
             double spacing = eyeCount > 1 ? (double)(usableWidth) / (eyeCount - 1) : 0.0;
             var candidates = new List<Point>();
-            bool[,] searchMask = headMask ?? mask;
+            bool[,] searchMask = headMask;
 
             // helper: try adding a candidate point found near base coords
             void TryAddCandidate(int baseX, int baseY, int radius)
@@ -506,8 +452,7 @@ namespace AutoSpriteCreator
             {
                 int r = Math.Max(1, Math.Clamp(headWidth / (6 + eyeCount), w / 32, w / 12));
 
-                // IMPORTANT: pass the headMask if available so DrawCuteEye can clip/anchor correctly
-                DrawCuteEye(bmp, headMask ?? mask, p.X, p.Y, r, accent, styleToUse);
+                DrawCuteEye(bmp, headMask, p.X, p.Y, r, accent, styleToUse);
             }
         }
 
@@ -712,7 +657,7 @@ namespace AutoSpriteCreator
         }
 
 
-        static Point EstimateHeadCenter(bool[,] mask, int maxY)
+        private static Point EstimateHeadCenter(bool[,] mask, int maxY)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
             int sumX = 0, sumY = 0, count = 0;
@@ -730,8 +675,8 @@ namespace AutoSpriteCreator
             return new Point(sumX / count, sumY / count);
         }
 
-        // New: compute centroid from a dedicated head mask (preferred for anchoring eyes precisely)
-        static Point EstimateHeadCenterFromMask(bool[,] headMask)
+        // compute centroid from a dedicated head mask
+        private static Point EstimateHeadCenterFromMask(bool[,] headMask)
         {
             if (headMask == null) return Point.Empty;
             int w = headMask.GetLength(0), h = headMask.GetLength(1);
@@ -748,15 +693,178 @@ namespace AutoSpriteCreator
             return new Point(sumX / count, sumY / count);
         }
 
-        public static void AddMouth(Image<Rgba32> bmp, bool[,] mask)
+        public static void AddMouth(Image<Rgba32> bmp, Settings settings, bool[,] headMask = null)
         {
-            Point headCenter = EstimateHeadCenter(mask, mask.GetLength(1) / 3);
-            if (headCenter.IsEmpty) return;
-            int mx = headCenter.X, my = headCenter.Y + 3;
-            PixelUtils.SafeSetPixel(bmp, mx - 1, my, Rgba32.ParseHex("#00000000"));
-            PixelUtils.SafeSetPixel(bmp, mx, my, Rgba32.ParseHex("#00000000"));
-            PixelUtils.SafeSetPixel(bmp, mx + 1, my, Rgba32.ParseHex("#00000000"));
+            int w = headMask.GetLength(0), h = headMask.GetLength(1);
+
+            // Compute head centroid and bounding-box (prefer headMask if supplied)
+            Point headCenter = Point.Empty;
+            int left = w, right = -1, top = h, bottom = -1;
+
+            if (headMask != null)
+            {
+                headCenter = EstimateHeadCenterFromMask(headMask);
+                for (int x = 0; x < w; x++)
+                    for (int y = 0; y < h; y++)
+                        if (headMask[x, y])
+                        {
+                            if (x < left) left = x;
+                            if (x > right) right = x;
+                            if (y < top) top = y;
+                            if (y > bottom) bottom = y;
+                        }
+            }
+
+            if (right < left || bottom < top)
+            {
+                // make a small default head around center (robust fallback)
+                if (headCenter.IsEmpty) headCenter = new Point(w / 2, Math.Max(0, h / 6));
+                left = Math.Max(0, headCenter.X - Math.Max(2, w / 12));
+                right = Math.Min(w - 1, headCenter.X + Math.Max(2, w / 12));
+                top = Math.Max(0, headCenter.Y - Math.Max(1, h / 24));
+                bottom = Math.Min(h - 1, headCenter.Y + Math.Max(1, h / 24));
+            }
+
+            int headWidth = Math.Max(1, right - left + 1);
+            int headHeight = Math.Max(1, bottom - top + 1);
+
+            // Choose a base mouth position: slightly lower than head center (cute), with small jitter.
+            int baseY = top + (int)Math.Round(headHeight * 0.60) + RNG.Rand.Next(-1, 2);
+            int baseX = headCenter.IsEmpty ? left + headWidth / 2 : headCenter.X + RNG.Rand.Next(-1, 2);
+
+            bool[,] searchMask = headMask;
+            var found = PixelUtils.FindNearestMaskPoint(searchMask, baseX, baseY, Math.Max(2, headWidth / 2));
+            int mx = found.IsEmpty ? Math.Clamp(baseX, 0, w - 1) : found.X;
+            int my = found.IsEmpty ? Math.Clamp(baseY, 0, h - 1) : found.Y;
+
+            // mouth width: scale with headWidth — tuned for small sprites (64x64)
+            int mouthWidth = Math.Clamp(headWidth / 3, 1, Math.Max(1, w / 8)); // for 64px headWidth ~ 12 -> mouthWidth ~ 4
+            int half = Math.Max(1, mouthWidth / 2);
+
+            Rgba32 black = Rgba32.ParseHex("#000000FF");
+            Rgba32 white = Rgba32.ParseHex("#FFFFFFFF");
+
+            // Helper to paint a pixel if it's inside the (search) mask and the canvas.
+            void Put(int px, int py, Rgba32 c)
+            {
+                if (px < 0 || py < 0 || px >= w || py >= h) return;
+                if (PixelUtils.IsPointInMask(searchMask, px, py))
+                    PixelUtils.SafeSetPixel(bmp, px, py, c);
+            }
+
+            var style = settings.mouthStyle;
+            if (style == MouthStyle.Random)
+            {
+                var vals = Enum.GetValues(typeof(MouthStyle));
+                // exclude last enum (Random) when picking
+                style = (MouthStyle)vals.GetValue(RNG.Rand.Next(0, vals.Length - 1));
+            }
+
+            // Draw styles — keep mouths small & simple so they read well at 64x64 pixel art.
+            switch (style)
+            {
+                case MouthStyle.SmallO:
+                    {
+                        // Bigger tiny 'o' — radius depends on half (1..2). Draw a filled-ish circle
+                        // but omit the top-centered pixel so it never looks like a star.
+                        int r = Math.Clamp(half, 1, 2); // grows a bit for larger head/mouth widths
+
+                        if (r <= 0)
+                        {
+                            Put(mx, my, black);
+                        }
+                        else
+                        {
+                            for (int dx = -r; dx <= r; dx++)
+                                for (int dy = -r; dy <= r; dy++)
+                                {
+                                    if (dx * dx + dy * dy <= r * r)
+                                    {
+                                        // Omit the top-most center pixel to avoid "star" artifacts.
+                                        if (dx == 0 && dy == -r) continue;
+                                        Put(mx + dx, my + dy, black);
+                                    }
+                                }
+                        }
+                    }
+                    break;
+
+                case MouthStyle.Open:
+                    {
+                        // small open mouth: 1-2 px tall band
+                        for (int dx = -half; dx <= half; dx++)
+                        {
+                            Put(mx + dx, my, black);
+                            if (my + 1 < h) Put(mx + dx, my + 1, black);
+                        }
+                    }
+                    break;
+
+                case MouthStyle.Toothy:
+                    {
+                        // small smile + two tiny teeth **below** the mouth row (moved down one more pixel)
+                        // draw a shallow smile curve (same parabola family as Smile)
+                        for (int dx = -half; dx <= half; dx++)
+                        {
+                            double t = half > 0 ? (Math.Abs((double)dx) / (double)half) : 0.0;
+                            int curve = (int)Math.Round((1.0 - t * t) * 1.0); // 0..1
+                            Put(mx + dx, my + curve, black);
+                        }
+                        // place two tiny teeth one pixel further down so they sit clearly below the mouth
+                        Put(mx - 1, my + 2, white);
+                        Put(mx + 1, my + 2, white);
+                    }
+                    break;
+
+                case MouthStyle.Grin:
+                    {
+                        // wider smile + small inner darkness for open grin, teeth below
+                        int span = Math.Max(half, 1);
+                        for (int dx = -span; dx <= span; dx++)
+                        {
+                            double t = (Math.Abs((double)dx) / (double)span);
+                            int curve = (int)Math.Round((1.0 - t * t) * 1.0);
+                            Put(mx + dx, my + curve, black);
+                            // small inner darkness for "open grin"
+                            if (my + curve + 1 < h) Put(mx + dx, my + curve + 1, black);
+                        }
+                        // teeth row inside/below the mouth (kept at +1 for a compact grin)
+                        Put(mx - 1, my + 1, white);
+                        Put(mx, my + 1, white);
+                        Put(mx + 1, my + 1, white);
+                    }
+                    break;
+
+                case MouthStyle.Sad:
+                    {
+                        // true downward arc (frown): center is higher than corners
+                        // use the same parabola shape as the smile but inverted vertically.
+                        for (int dx = -half; dx <= half; dx++)
+                        {
+                            double t = half > 0 ? (Math.Abs((double)dx) / (double)half) : 0.0;
+                            int curve = (int)Math.Round((1.0 - t * t) * 1.0); // 0..1 (peak center)
+                            Put(mx + dx, my - curve, black); // center above, corners below -> frown
+                        }
+                    }
+                    break;
+
+                case MouthStyle.Smile:
+                default:
+                    {
+                        // gentle upward 'u' shaped smile (cute, subtle)
+                        for (int dx = -half; dx <= half; dx++)
+                        {
+                            double t = half > 0 ? (Math.Abs((double)dx) / (double)half) : 0.0;
+                            int curve = (int)Math.Round((1.0 - t * t) * 1.0); // 0..1
+                            Put(mx + dx, my + curve, black);
+                        }
+                    }
+                    break;
+            }
         }
+
+
+
 
         // ---------- Backwards-compatible overload (keeps existing call sites working) ----------
         // old signature: (Image limbImg, bool[,] bodyMask, Rgba32 limbColor, int margin)
@@ -839,7 +947,7 @@ namespace AutoSpriteCreator
         }
 
         // ---------- Helpers: mask-painting primitives (operates on boolean masks only) ----------
-        static void SetMaskCircle(bool[,] mask, int cx, int cy, int radius, int margin)
+        private static void SetMaskCircle(bool[,] mask, int cx, int cy, int radius, int margin)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
             if (radius <= 0)
@@ -863,7 +971,7 @@ namespace AutoSpriteCreator
                 }
         }
 
-        static void SetMaskLine(bool[,] mask, int x0, int y0, int x1, int y1, int margin)
+        private static void SetMaskLine(bool[,] mask, int x0, int y0, int x1, int y1, int margin)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
             int dx = Math.Abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
@@ -880,7 +988,7 @@ namespace AutoSpriteCreator
         }
 
         // ---------- Draw limb shapes into mask (no coloring) ----------
-        static void DrawAdvancedLimbMask(bool[,] mask, int sx, int sy, int dirX, int dirY, int length, int margin, LimbStyle style, bool isLeft, bool isLeg)
+        private static void DrawAdvancedLimbMask(bool[,] mask, int sx, int sy, int dirX, int dirY, int length, int margin, LimbStyle style, bool isLeft, bool isLeg)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
             if (length <= 0) return;
@@ -1033,7 +1141,7 @@ namespace AutoSpriteCreator
         }
 
         // Small helper to pick random limb style when not forced
-        static LimbStyle RandomLimbStyle(bool isLeg)
+        private static LimbStyle RandomLimbStyle(bool isLeg)
         {
             double r = RNG.Rand.NextDouble();
             if (isLeg)
@@ -1075,7 +1183,7 @@ namespace AutoSpriteCreator
             }
         }
 
-        static bool IsEdgeMask(bool[,] mask, int x, int y)
+        private static bool IsEdgeMask(bool[,] mask, int x, int y)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
             if (!mask[x, y]) return false;

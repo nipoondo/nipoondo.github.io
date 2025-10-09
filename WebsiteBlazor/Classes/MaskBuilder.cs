@@ -1,27 +1,14 @@
-﻿// MaskBuilder.cs - drop this into your AutoSpriteCreator project (replace existing file)
+﻿// MaskBuilder.cs - drop this into your Classes project (replace existing file)
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using WebsiteBlazor.Classes;
 
-namespace AutoSpriteCreator
+namespace AutoSpriteGenerator
 {
     public static class MaskBuilder
     {
-        // Backwards-compatible: returns the combined mask (body + head) like your original API.
-        public static bool[,] BuildMask(Settings settings)
-        {
-            BuildProcessedMasks(settings, out bool[,] bodyMask, out bool[,] headMask);
-
-            bool[,] result = new bool[settings.Dimension, settings.Dimension];
-            for (int x = 0; x < settings.Dimension; x++)
-                for (int y = 0; y < settings.Dimension; y++)
-                    result[x, y] = bodyMask[x, y] || headMask[x, y];
-
-            return result;
-        }
-
-        // New: returns processed masks split into body and head so features/animations can use them separately.
+        // returns processed masks split into body and head so features/animations can use them separately.
         public static void BuildProcessedMasks(Settings settings, out bool[,] bodyMask, out bool[,] headMask)
         {
             // 1) build base shapes separately (these are deterministic-ish and stable)
@@ -33,8 +20,8 @@ namespace AutoSpriteCreator
             int bodyHeight = settings.Dimension - bodyStartY;
             int headHeight = bodyStartY;
 
-            CreateBody(baseBody, archetype, settings.Dimension, settings.Dimension, bodyStartY, bodyHeight, settings.Margin);
-            CreateHead(baseHead, archetype, settings.Dimension, settings.Dimension, bodyStartY, headHeight, settings.Margin);
+            CreateBody(baseBody, settings, bodyStartY, bodyHeight);
+            CreateHead(baseHead, settings, bodyStartY, headHeight);
 
             // 2) produce a varied body from the base body (noise, segments, lobes, spikes, holes)
             bool[,] variedBody = GenerateVariedBody(baseBody, bodyStartY, bodyHeight, settings);
@@ -97,10 +84,10 @@ namespace AutoSpriteCreator
             }
 
             // 2) segmented variants (sausage / armor plates)
-            if (RNG.Rand.NextDouble() < 0.5)
+            if (settings.UseSegments)
             {
                 bool[,] seg = new bool[w, h];
-                int segments = RNG.Rand.Next(2, 6);
+                int segments = settings.NumberOfSegments;
                 int cxBase = w / 2 + RNG.Rand.Next(-3, 4);
                 for (int i = 0; i < segments; i++)
                 {
@@ -123,34 +110,38 @@ namespace AutoSpriteCreator
                 }
             }
 
-            // 3) add / subtract lobes (extra bellies, side pouches)
-            int blobCount = RNG.Rand.Next(0, 4);
-            var bbox = GetBoundingBox(mask);
-            if (bbox.Width <= 0 || bbox.Height <= 0) bbox = GetBoundingBox(baseBody);
+			// 3) add / subtract lobes (extra bellies, side pouches)
+			var bbox = GetBoundingBox(mask);
+			if (bbox.Width <= 0 || bbox.Height <= 0) bbox = GetBoundingBox(baseBody);
 
-            for (int b = 0; b < blobCount; b++)
+			if (settings.UseLobes)
             {
-                int bx = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Left - 4), Math.Min(w - settings.Margin, bbox.Right + 4));
-                int by = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Top - 4), Math.Min(h - settings.Margin, bbox.Bottom + 4));
-                int brx = Math.Max(1, RNG.Rand.Next(Math.Max(2, w / 24), Math.Max(2, w / 8)));
-                int bry = Math.Max(1, RNG.Rand.Next(Math.Max(2, h / 32), Math.Max(2, h / 10)));
-                bool[,] blob = new bool[w, h];
-                FillEllipseMask(blob, bx, by, brx, bry, settings.Margin);
+                int blobCount = settings.NumberOfLobes;
 
-                if (RNG.Rand.NextDouble() < 0.72)
+                for (int b = 0; b < blobCount; b++)
                 {
-                    for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) mask[x, y] = mask[x, y] || blob[x, y];
-                }
-                else
-                {
-                    for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) if (blob[x, y]) mask[x, y] = false;
+                    int bx = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Left - 4), Math.Min(w - settings.Margin, bbox.Right + 4));
+                    int by = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Top - 4), Math.Min(h - settings.Margin, bbox.Bottom + 4));
+                    int brx = Math.Max(1, RNG.Rand.Next(Math.Max(2, w / 24), Math.Max(2, w / 8)));
+                    int bry = Math.Max(1, RNG.Rand.Next(Math.Max(2, h / 32), Math.Max(2, h / 10)));
+                    bool[,] blob = new bool[w, h];
+                    FillEllipseMask(blob, bx, by, brx, bry, settings.Margin);
+
+                    if (RNG.Rand.NextDouble() < 0.72)
+                    {
+                        for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) mask[x, y] = mask[x, y] || blob[x, y];
+                    }
+                    else
+                    {
+                        for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) if (blob[x, y]) mask[x, y] = false;
+                    }
                 }
             }
 
             // 4) perforations (holes)
-            if (RNG.Rand.NextDouble() < 0.45)
+            if (settings.UseHoles)
             {
-                int holes = RNG.Rand.Next(0, 4);
+                int holes = settings.NumberOfHoles;
                 for (int i = 0; i < holes; i++)
                 {
                     int hx = RNG.Rand.Next(Math.Max(settings.Margin, bbox.Left), Math.Min(w - settings.Margin, bbox.Right));
@@ -164,7 +155,7 @@ namespace AutoSpriteCreator
             }
 
             // 5) spikes / protrusions along perimeter
-            if (RNG.Rand.NextDouble() < 0.55)
+            if (settings.UseProtrusions)
             {
                 List<Point> edges = new List<Point>();
                 for (int x = 0; x < w; x++) for (int y = 0; y < h; y++) if (IsEdgeMask(mask, x, y)) edges.Add(new Point(x, y));
@@ -202,80 +193,153 @@ namespace AutoSpriteCreator
             }
 
             // 6) cleanup and small morphology for readability at small sprite sizes
-            MorphologicalClean(mask, 1);
-            if (RNG.Rand.NextDouble() < 0.5) mask = Dilate(mask);
-            if (RNG.Rand.NextDouble() < 0.5) mask = Erode(mask);
+            if(settings.UseMorphologicClean)
+                MorphologicalClean(mask, 1);
+            if (settings.UseDilatation) 
+                mask = Dilate(mask);
+            if (settings.UseErosion) 
+                mask = Erode(mask);
 
             return mask;
         }
 
-        // ----------------- Base shape builders (unchanged style) -----------------
-        static void CreateBody(bool[,] mask, int archetype, int width, int height, int bodyStartY, int bodyHeight, int margin)
-        {
-            int cx = width / 2 + RNG.Rand.Next(-4, 5);
-            int cy = bodyStartY + bodyHeight / 2;
+		static void CreateBody(bool[,] mask, Settings settings, int bodyStartY, int bodyHeight)
+		{
+			int w = mask.GetLength(0), h = mask.GetLength(1);
+			int cx = settings.Dimension / 2 + RNG.Rand.Next(-4, 5);
+			int cy = bodyStartY + bodyHeight / 2;
 
-            switch (archetype)
-            {
-                case 0:
-                    FillEllipseMask(mask, cx, cy, (int)(width * 0.36), (int)(bodyHeight * 0.45), margin);
-                    break;
-                case 1:
-                    FillEllipseMask(mask, cx, cy, (int)(width * 0.26), (int)(bodyHeight * 0.6), margin);
-                    FillEllipseMask(mask, cx, bodyStartY + bodyHeight / 3, (int)(width * 0.34), (int)(bodyHeight * 0.28), margin);
-                    break;
-                case 2:
-                    FillEllipseMask(mask, cx, cy, (int)(width * 0.52), (int)(bodyHeight * 0.36), margin);
-                    break;
-                case 3:
-                    int segments = RNG.Rand.Next(3, 6);
-                    int segW = width / 4;
-                    for (int i = 0; i < segments; i++) FillEllipseMask(mask, cx, bodyStartY + (i + 1) * bodyHeight / (segments + 1), Math.Max(1, segW - i), Math.Max(1, segW - i), margin);
-                    break;
-                case 4:
-                    FillEllipseMask(mask, cx, bodyStartY + bodyHeight / 3, (int)(width * 0.32), (int)(bodyHeight * 0.28), margin);
-                    FillEllipseMask(mask, cx, bodyStartY + (int)(bodyHeight * 0.62), (int)(width * 0.22), (int)(bodyHeight * 0.32), margin);
-                    FillEllipseMask(mask, cx, bodyStartY + bodyHeight / 2, (int)(width * 0.18), (int)(bodyHeight * 0.12), margin);
-                    break;
-                case 5:
-                    FillEllipseMask(mask, cx, cy, (int)(width * 0.36), (int)(bodyHeight * 0.45), margin);
-                    FillEllipseMask(mask, cx - (int)(width * 0.25), bodyStartY + bodyHeight / 3, (int)(width * 0.18), (int)(bodyHeight * 0.28), margin);
-                    FillEllipseMask(mask, cx + (int)(width * 0.25), bodyStartY + bodyHeight / 3, (int)(width * 0.18), (int)(bodyHeight * 0.28), margin);
-                    break;
-                case 6:
-                    FillEllipseMask(mask, cx, cy, (int)(width * 0.34), (int)(bodyHeight * 0.44), margin);
-                    FillEllipseMask(mask, cx - (int)(width * 0.12), bodyStartY + bodyHeight / 3, (int)(width * 0.22), (int)(bodyHeight * 0.2), margin);
-                    break;
-                case 7:
-                    FillEllipseMask(mask, cx - (int)(width * 0.08), cy, (int)(width * 0.36), (int)(bodyHeight * 0.4), margin);
-                    FillEllipseMask(mask, cx + (int)(width * 0.18), bodyStartY + (int)(bodyHeight * 0.6), (int)(width * 0.18), (int)(bodyHeight * 0.12), margin);
-                    break;
-                default:
-                    FillEllipseMask(mask, cx, cy, (int)(width * 0.36), (int)(bodyHeight * 0.45), margin);
-                    break;
-            }
-        }
+			if (RNG.Rand.NextDouble() < 0.25)
+				cx += RNG.Rand.Next(-6, 7);
 
-        static void CreateHead(bool[,] mask, int archetype, int width, int height, int bodyStartY, int headHeight, int margin)
+			void RemoveEllipse(int rcx, int rcy, int rx, int ry)
+			{
+				if (rx <= 0 || ry <= 0) return;
+				bool[,] hole = new bool[w, h];
+				FillEllipseMask(hole, rcx, rcy, rx, ry, settings.Margin);
+				for (int x = 0; x < w; x++)
+					for (int y = 0; y < h; y++)
+						if (hole[x, y]) mask[x, y] = false;
+			}
+
+			void AddLobe(int offX, int offY, double rxFactor, double ryFactor)
+			{
+				FillEllipseMask(mask,
+					cx + offX,
+					bodyStartY + offY,
+					Math.Max(1, (int)(settings.Dimension * rxFactor)),
+					Math.Max(1, (int)(bodyHeight * ryFactor)),
+					settings.Margin);
+			}
+
+            var bodyType = settings.bodyArchetype;
+			if (bodyType == BodyArchetype.Random)
+				bodyType = (BodyArchetype)(RNG.Rand.Next() % 8);
+
+			switch (bodyType)
+			{
+				case BodyArchetype.Classic:
+					FillEllipseMask(mask, cx, cy, (int)(settings.Dimension * 0.38), (int)(bodyHeight * 0.46), settings.Margin);
+					if (RNG.Rand.NextDouble() < 0.5)
+						AddLobe(0, (int)(bodyHeight * 0.25), 0.28, 0.24);
+					if (RNG.Rand.NextDouble() < 0.35)
+						RemoveEllipse(cx, bodyStartY + bodyHeight / 2, (int)(settings.Dimension * 0.12), (int)(bodyHeight * 0.08));
+					break;
+
+				case BodyArchetype.Column:
+					FillEllipseMask(mask, cx, bodyStartY + (int)(bodyHeight * 0.45), (int)(settings.Dimension * 0.26), (int)(bodyHeight * 0.70), settings.Margin);
+					FillEllipseMask(mask, cx, bodyStartY + bodyHeight / 3, (int)(settings.Dimension * 0.34), (int)(bodyHeight * 0.28), settings.Margin);
+					if (RNG.Rand.NextDouble() < 0.5) AddLobe(-(int)(settings.Dimension * 0.22), (int)(bodyHeight * 0.25), 0.18, 0.24);
+					if (RNG.Rand.NextDouble() < 0.5) AddLobe((int)(settings.Dimension * 0.22), (int)(bodyHeight * 0.25), 0.18, 0.24);
+					break;
+
+				case BodyArchetype.Pancake:
+					FillEllipseMask(mask, cx, cy, (int)(settings.Dimension * 0.52), (int)(bodyHeight * 0.34), settings.Margin);
+					if (RNG.Rand.NextDouble() < 0.65)
+					{
+						int extra = RNG.Rand.Next(1, 4);
+						for (int i = 0; i < extra; i++)
+							AddLobe(RNG.Rand.Next(-settings.Dimension / 6, settings.Dimension / 6),
+									RNG.Rand.Next((int)(bodyHeight * 0.1), (int)(bodyHeight * 0.4)),
+									0.12 + RNG.Rand.NextDouble() * 0.12,
+									0.12 + RNG.Rand.NextDouble() * 0.12);
+					}
+					break;
+
+				case BodyArchetype.Segmented:
+					{
+						int segments = RNG.Rand.Next(2, 6);
+						int segBaseCx = cx + RNG.Rand.Next(-3, 4);
+						for (int i = 0; i < segments; i++)
+						{
+							double t = segments == 1 ? 0.5 : (double)i / (segments - 1);
+							int segCy = bodyStartY + (int)Math.Round((i + 1.0) * bodyHeight / (segments + 1.0)) + RNG.Rand.Next(-2, 3);
+							int rx = Math.Max(1, (int)(settings.Dimension * (0.12 + 0.36 * (1.0 - Math.Abs(0.5 - t)))));
+							int ry = Math.Max(1, (int)(bodyHeight * (0.08 + 0.25 * RNG.Rand.NextDouble())));
+							FillEllipseMask(mask, segBaseCx + RNG.Rand.Next(-4, 5), segCy, rx, ry, settings.Margin);
+						}
+					}
+					break;
+
+				case BodyArchetype.MultiLobed:
+					FillEllipseMask(mask, cx, bodyStartY + (int)(bodyHeight * 0.28), (int)(settings.Dimension * 0.32), (int)(bodyHeight * 0.28), settings.Margin);
+					FillEllipseMask(mask, cx, bodyStartY + (int)(bodyHeight * 0.62), (int)(settings.Dimension * 0.22), (int)(bodyHeight * 0.34), settings.Margin);
+					FillEllipseMask(mask, cx, bodyStartY + bodyHeight / 2, (int)(settings.Dimension * 0.18), (int)(bodyHeight * 0.12), settings.Margin);
+					if (RNG.Rand.NextDouble() < 0.45) AddLobe(-(int)(settings.Dimension * 0.25), (int)(bodyHeight * 0.28), 0.18, 0.28);
+					if (RNG.Rand.NextDouble() < 0.45) AddLobe((int)(settings.Dimension * 0.25), (int)(bodyHeight * 0.28), 0.18, 0.28);
+					break;
+
+				case BodyArchetype.TriLobed:
+					FillEllipseMask(mask, cx, cy, (int)(settings.Dimension * 0.30), (int)(bodyHeight * 0.46), settings.Margin);
+					AddLobe(-(int)(settings.Dimension * 0.26), (int)(bodyHeight * 0.28), 0.18, 0.28);
+					AddLobe((int)(settings.Dimension * 0.26), (int)(bodyHeight * 0.28), 0.18, 0.28);
+					if (RNG.Rand.NextDouble() < 0.3)
+						RemoveEllipse(cx, bodyStartY + (int)(bodyHeight * 0.6), (int)(settings.Dimension * 0.08), (int)(bodyHeight * 0.06));
+					break;
+
+				case BodyArchetype.Asymmetric:
+					FillEllipseMask(mask, cx, cy, (int)(settings.Dimension * 0.34), (int)(bodyHeight * 0.44), settings.Margin);
+					int side = RNG.Rand.NextDouble() < 0.5 ? -1 : 1;
+					AddLobe(side * (int)(settings.Dimension * 0.16 + RNG.Rand.Next(-2, 3)), (int)(bodyHeight * 0.28 + RNG.Rand.Next(-3, 4)), 0.22, 0.20);
+					if (RNG.Rand.NextDouble() < 0.20)
+						RemoveEllipse(cx + side * (int)(settings.Dimension * 0.16), bodyStartY + (int)(bodyHeight * 0.28), (int)(settings.Dimension * 0.06), (int)(bodyHeight * 0.05));
+					break;
+
+				case BodyArchetype.Tapered:
+					FillEllipseMask(mask, cx - (int)(settings.Dimension * 0.06), cy, (int)(settings.Dimension * 0.36), (int)(bodyHeight * 0.40), settings.Margin);
+					FillEllipseMask(mask, cx + (int)(settings.Dimension * 0.18), bodyStartY + (int)(bodyHeight * 0.60), (int)(settings.Dimension * 0.18), (int)(bodyHeight * 0.12), settings.Margin);
+					if (RNG.Rand.NextDouble() < 0.5)
+						FillEllipseMask(mask, cx + (int)(settings.Dimension * 0.28), bodyStartY + (int)(bodyHeight * 0.90), (int)(settings.Dimension * 0.08), (int)(bodyHeight * 0.06), settings.Margin);
+					break;
+
+				default:
+					FillEllipseMask(mask, cx, cy, (int)(settings.Dimension * 0.36), (int)(bodyHeight * 0.45), settings.Margin);
+					break;
+			}
+		}
+
+
+
+		static void CreateHead(bool[,] mask, Settings settings, int bodyStartY, int headHeight)
         {
-            int headCx = width / 2 + RNG.Rand.Next(-3, 4);
-            int headCy = Math.Max(margin + 1, bodyStartY - headHeight / 3 + RNG.Rand.Next(-2, 3));
-            int headRx = (int)(width * 0.22) + RNG.Rand.Next(-2, 3);
+            int headCx = settings.Dimension / 2 + RNG.Rand.Next(-3, 4);
+            int headCy = Math.Max(settings.Margin + 1, bodyStartY - headHeight / 3 + RNG.Rand.Next(-2, 3));
+            int headRx = (int)(settings.Dimension * 0.22) + RNG.Rand.Next(-2, 3);
             int headRy = Math.Max(3, headHeight / 2 + RNG.Rand.Next(-2, 3));
 
-            FillEllipseMask(mask, headCx, headCy, headRx, headRy, margin);
+            FillEllipseMask(mask, headCx, headCy, headRx, headRy, settings.Margin);
 
             if (RNG.Rand.NextDouble() < 0.45)
             {
                 int hornY = headCy - headRy / 2;
                 if (RNG.Rand.NextDouble() < 0.5)
                 {
-                    FillEllipseMask(mask, headCx - headRx + 2, hornY - 2, 3, 3, margin);
-                    FillEllipseMask(mask, headCx + headRx - 2, hornY - 2, 3, 3, margin);
+                    FillEllipseMask(mask, headCx - headRx + 2, hornY - 2, 3, 3, settings.Margin);
+                    FillEllipseMask(mask, headCx + headRx - 2, hornY - 2, 3, 3, settings.Margin);
                 }
                 else
                 {
-                    FillEllipseMask(mask, headCx, hornY - 3, 3, 4, margin);
+                    FillEllipseMask(mask, headCx, hornY - 3, 3, 4, settings.Margin);
                 }
             }
         }

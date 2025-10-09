@@ -1,4 +1,4 @@
-﻿using AutoSpriteCreator;
+﻿using AutoSpriteGenerator;
 using WebsiteBlazor.Classes;
 
 namespace WebsiteBlazor.Pages
