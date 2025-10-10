@@ -89,14 +89,36 @@ namespace WebsiteBlazor.Classes
 
     public enum BodyArchetype
     {
-        Classic = 0,
-        Column = 1,
-        Pancake = 2,
-        Segmented = 3,
-        MultiLobed = 4,
-        TriLobed = 5,
-        Asymmetric = 6,
-        Tapered = 7,
-        Random = 8
+        Random = 0,      // choose a random archetype
+        Normal,        // the default rounded body
+        Thin,          // narrow tall body
+        Tall,          // very tall column
+        Wide,          // squat wide body
+        Big,           // overall large / bulbous
+        Tiny,          // very small compact body
+        TopHeavy,      // big mass near the head
+        BottomHeavy,   // heavy near the base
+        Floating,      // body appears floating (gap near feet)
+        Segmented,     // stacked segments (armor/sausage)
+        MultiLobed,    // several side lobes
+        Lopsided,      // asymmetric bulge to one side
+        Hourglass,     // narrow waist, bulbs top+bottom
+        Ringed,        // donut / hollow center
+        Spiky,         // spikes/protrusions
+        Tentacled,     // orb + tentacle-like lower bits
+        Worm,          // long horizontal sausage
+        Columnar,      // vertical column / pillar
+        Bulbous,       // multiple stacked bulbs
+        Armored,       // plates / overlapping ellipses
+        Split,         // split into left/right halves
+        Dripping,      // main body with droplet-like bits below
+        Jelly,         // blob with wobbly margins (handled later by noise)
+        Flat,          // very flat pancake
+        Orbital,       // a central orb with smaller satellite blobs
+        Asymmetric,    // deliberately uneven shape
+        Layered,       // horizontal layers / plates
+        Radial,        // central core with radial lobes
+        TreeLike,      // trunk + branching masses
+                       // add more as needed...
     }
 }

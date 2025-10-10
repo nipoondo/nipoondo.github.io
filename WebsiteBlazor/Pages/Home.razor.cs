@@ -1,4 +1,5 @@
-﻿using AutoSpriteGenerator;
+﻿using System.Runtime;
+using AutoSpriteGenerator;
 using WebsiteBlazor.Classes;
 
 namespace WebsiteBlazor.Pages
@@ -17,16 +18,13 @@ namespace WebsiteBlazor.Pages
 
         private void GenerateMonsterSprite()
         {
-            if (_settings.UseSeed)
+            if (!_settings.UseSeed)
             {
-                RNG.SetSeed(_settings.Seed);
+                _settings.Seed = Environment.TickCount;
             }
-            else
-            {
-                RNG.Rand = new Random();
-                _settings.Seed = RNG.Rand.Next();
-                RNG.SetSeed(_settings.Seed);
-            }
+
+            DeterministicRandom.Initialize(_settings.Seed);
+
 
             _sprite = AdvancedPixelMonsterGenerator.MonsterMain(_settings);
         }

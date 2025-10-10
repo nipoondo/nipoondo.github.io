@@ -15,13 +15,6 @@ using SixLabors.ImageSharp.Formats.Gif;
 
 namespace AutoSpriteGenerator
 {
-    public static class RNG
-    {
-        public static Random Rand = new Random();
-
-        public static void SetSeed(int seed) => Rand = new(seed);
-    }
-
     public class AdvancedPixelMonsterGenerator
     {
         public static string MonsterMain(Settings settings)

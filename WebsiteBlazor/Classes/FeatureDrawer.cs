@@ -17,7 +17,7 @@ namespace AutoSpriteGenerator
 
             // if mode is Random, choose any other mode per random
             if (mode == PaletteMode.Random)
-                mode = (PaletteMode)(RNG.Rand.Next() % 7);
+                mode = (PaletteMode)(DeterministicRandom.Next("ApplyNoisePalette", 0, 6));
 
             // Build main palette and optional head palette
             Rgba32[] palette = BuildPaletteFromMode(baseColor, mode, nColors, paletteSeed);
@@ -29,14 +29,14 @@ namespace AutoSpriteGenerator
                 headPalette = BuildPaletteFromMode(baseColor, hm, nColors, (paletteSeed ?? 0) + 12345);
             }
 
-            var noise = new ValueNoise(RNG.Rand.Next())
+            var noise = new ValueNoise(DeterministicRandom.Next("ApplyNoisePalette"))
             {
                 Octaves = 5,
                 Period = 30.0,
                 Persistence = 0.4,
                 Lacunarity = 3.0
             };
-            var noise2 = new ValueNoise(RNG.Rand.Next())
+            var noise2 = new ValueNoise(DeterministicRandom.Next("ApplyNoisePalette"))
             {
                 Octaves = 3,
                 Period = 40.0,
@@ -119,7 +119,6 @@ namespace AutoSpriteGenerator
             double h, s, v;
             ColorUtils.RGBtoHSV(baseColor, out h, out s, out v);
 
-            var rng = seed.HasValue ? new Random(seed.Value) : RNG.Rand;
             double clampSMin = 0.18;
             double clampSMax = 0.95;
             double clampVMin = 0.15;
@@ -148,13 +147,13 @@ namespace AutoSpriteGenerator
 
                 case PaletteMode.Analogous:
                     {
-                        double spread = 40.0 + rng.NextDouble() * 20.0; // 40..60 degrees total
+                        double spread = 40.0 + DeterministicRandom.NextDouble("Analogous") * 20.0; // 40..60 degrees total
                         double start = Wrap(h - spread * 0.5);
                         for (int i = 0; i < nColors; i++)
                         {
                             double t = nColors == 1 ? 0.5 : (double)i / (nColors - 1);
                             double hh = Wrap(start + t * spread);
-                            double ss = Math.Max(clampSMin, Math.Min(clampSMax, s * (0.9 + rng.NextDouble() * 0.2)));
+                            double ss = Math.Max(clampSMin, Math.Min(clampSMax, s * (0.9 + DeterministicRandom.NextDouble("Analogous") * 0.2)));
                             double vv = Math.Max(clampVMin, Math.Min(clampVMax, v * (0.85 + (t - 0.5) * 0.2)));
                             pal[i] = ColorUtils.ColorFromHSV(hh, ss, vv);
                         }
@@ -180,7 +179,7 @@ namespace AutoSpriteGenerator
                 case PaletteMode.SplitComplementary:
                     {
                         double comp = Wrap(h + 180.0);
-                        double off = 22 + rng.NextDouble() * 8; // 22..30 deg from complement
+                        double off = 22 + DeterministicRandom.NextDouble("SplitComplementary") * 8; // 22..30 deg from complement
                         double c1 = Wrap(comp - off), c2 = Wrap(comp + off);
                         // distribute base + the two split complement colors into palette
                         for (int i = 0; i < nColors; i++)
@@ -214,7 +213,7 @@ namespace AutoSpriteGenerator
                 case PaletteMode.TwoToneRandom:
                     {
                         // pick a second hue at moderate distance (60..140 deg) for variety
-                        double hue2 = Wrap(h + (rng.NextDouble() * 80 + 60) * (rng.NextDouble() < 0.5 ? 1 : -1));
+                        double hue2 = Wrap(h + (DeterministicRandom.NextDouble("TwoToneRandom") * 80 + 60) * (DeterministicRandom.NextDouble("TwoToneRandom") < 0.5 ? 1 : -1));
                         for (int i = 0; i < nColors; i++)
                         {
                             double t = (double)i / Math.Max(1, nColors - 1);
@@ -250,25 +249,25 @@ namespace AutoSpriteGenerator
         public static void AddInternalPatterns(Image<Rgba32> bmp, bool[,] mask, Rgba32 patternColor)
         {
             int w = mask.GetLength(0), h = mask.GetLength(1);
-            if (RNG.Rand.NextDouble() < 0.5)
+            if (DeterministicRandom.NextDouble("AddInternalPatterns") < 0.5)
             {
-                int spots = RNG.Rand.Next(2, 6);
+                int spots = DeterministicRandom.Next("AddInternalPatterns", 2, 6);
                 for (int s = 0; s < spots; s++)
                 {
-                    int cx = RNG.Rand.Next(w);
-                    int cy = RNG.Rand.Next(h);
-                    int r = RNG.Rand.Next(1, 3);
+                    int cx = DeterministicRandom.Next("AddInternalPatterns", w);
+                    int cy = DeterministicRandom.Next("AddInternalPatterns", h);
+                    int r = DeterministicRandom.Next("AddInternalPatterns", 1, 3);
                     if (PixelUtils.IsPointInMask(mask, cx, cy))
                         PixelUtils.FillCircleClipped(bmp, mask, cx, cy, r, patternColor);
                 }
             }
             else
             {
-                bool horizontal = RNG.Rand.NextDouble() < 0.5;
-                int lines = RNG.Rand.Next(2, 5);
+                bool horizontal = DeterministicRandom.NextDouble("AddInternalPatterns") < 0.5;
+                int lines = DeterministicRandom.Next("AddInternalPatterns", 2, 5);
                 for (int l = 0; l < lines; l++)
                 {
-                    int off = RNG.Rand.Next(h);
+                    int off = DeterministicRandom.Next("AddInternalPatterns", h);
                     for (int x = 0; x < w; x++)
                     {
                         int y = horizontal ? off + l * 2 : (off + x / 3 + l * 2) % h;
@@ -332,8 +331,8 @@ namespace AutoSpriteGenerator
             {
                 // heuristics: small heads -> 1, medium -> 1-2, large -> 2-4
                 if (headWidth < w * 0.15) eyeCount = 1;
-                else if (headWidth < w * 0.28) eyeCount = RNG.Rand.Next(1, 3); // 1..2
-                else eyeCount = RNG.Rand.Next(1, Math.Min(4, Math.Max(2, headWidth / Math.Max(1, w / 8))) + 1);
+                else if (headWidth < w * 0.28) eyeCount = DeterministicRandom.Next("AddEyes", 1, 3); // 1..2
+                else eyeCount = DeterministicRandom.Next("AddEyes", 1, Math.Min(4, Math.Max(2, headWidth / Math.Max(1, w / 8))) + 1);
             }
 
             // special logic for two eyes:
@@ -351,7 +350,7 @@ namespace AutoSpriteGenerator
                 // frontal probability increases when head center is near bounding-box center.
                 // Range roughly: 25% (very lopsided head) .. 95% (centered head).
                 double frontalProbability = 0.25 + (1.0 - dist) * 0.4; // WAS 0.25 + ...
-                preferFrontal = RNG.Rand.NextDouble() < frontalProbability;
+                preferFrontal = DeterministicRandom.NextDouble("AddEyes") < frontalProbability;
             }
 
             // compute candidate x positions evenly across head width (anchored to headMask bounding box)
@@ -376,8 +375,8 @@ namespace AutoSpriteGenerator
                 int baseY = top + Math.Max(1, (int)Math.Round(headHeight * 0.35));
                 int radius = Math.Max(2, Math.Min(headHeight, Math.Max(3, headWidth / 6)));
 
-                TryAddCandidate(headCenter.X - offset + RNG.Rand.Next(-1, 2), baseY + RNG.Rand.Next(-1, 2), radius);
-                TryAddCandidate(headCenter.X + offset + RNG.Rand.Next(-1, 2), baseY + RNG.Rand.Next(-1, 2), radius);
+                TryAddCandidate(headCenter.X - offset + DeterministicRandom.Next("AddEyes", -1, 2), baseY + DeterministicRandom.Next("AddEyes", -1, 2), radius);
+                TryAddCandidate(headCenter.X + offset + DeterministicRandom.Next("AddEyes", -1, 2), baseY + DeterministicRandom.Next("AddEyes", -1, 2), radius);
 
                 // If frontal search failed to find both eyes, fall back to side/spacing approach below.
                 if (candidates.Count < 2)
@@ -386,9 +385,9 @@ namespace AutoSpriteGenerator
                     for (int i = 0; i < eyeCount; i++)
                     {
                         int baseX = eyeCount == 1 ? headCenter.X : left + (int)Math.Round(i * spacing);
-                        int jitterX = RNG.Rand.Next(-1, 2);
+                        int jitterX = DeterministicRandom.Next("AddEyes", -1, 2);
                         int ex = Math.Clamp(baseX + jitterX, 0, w - 1);
-                        int baseY2 = top + Math.Max(1, (int)Math.Round(headHeight * 0.35)) + RNG.Rand.Next(-1, 2);
+                        int baseY2 = top + Math.Max(1, (int)Math.Round(headHeight * 0.35)) + DeterministicRandom.Next("AddEyes", -1, 2);
                         int radius2 = Math.Max(2, Math.Min(headHeight, Math.Max(3, headWidth / 6)));
                         TryAddCandidate(ex, baseY2, radius2);
                     }
@@ -400,10 +399,10 @@ namespace AutoSpriteGenerator
                 for (int i = 0; i < eyeCount; i++)
                 {
                     int baseX = eyeCount == 1 ? headCenter.X : left + (int)Math.Round(i * spacing);
-                    int jitterX = RNG.Rand.Next(-1, 2);
+                    int jitterX = DeterministicRandom.Next("AddEyes", -1, 2);
                     int ex = Math.Clamp(baseX + jitterX, 0, w - 1);
                     // prefer placing eyes slightly above the vertical midline of the head box for cuteness
-                    int baseY = top + Math.Max(1, (int)Math.Round(headHeight * 0.35)) + RNG.Rand.Next(-1, 2);
+                    int baseY = top + Math.Max(1, (int)Math.Round(headHeight * 0.35)) + DeterministicRandom.Next("AddEyes", -1, 2);
                     // search radius - relative to head size
                     int radius = Math.Max(2, Math.Min(headHeight, Math.Max(3, headWidth / 6)));
 
@@ -445,7 +444,7 @@ namespace AutoSpriteGenerator
             {
                 // pick a random non-Random style
                 var vals = Enum.GetValues(typeof(EyeStyle));
-                styleToUse = (EyeStyle)vals.GetValue(RNG.Rand.Next(1, vals.Length));
+                styleToUse = (EyeStyle)vals.GetValue(DeterministicRandom.Next("AddEyes", 1, vals.Length));
             }
 
             foreach (var p in filtered)
@@ -656,25 +655,6 @@ namespace AutoSpriteGenerator
             }
         }
 
-
-        private static Point EstimateHeadCenter(bool[,] mask, int maxY)
-        {
-            int w = mask.GetLength(0), h = mask.GetLength(1);
-            int sumX = 0, sumY = 0, count = 0;
-
-            for (int x = 0; x < w; x++)
-                for (int y = 0; y < Math.Min(h, maxY); y++)
-                    if (mask[x, y])
-                    {
-                        sumX += x;
-                        sumY += y;
-                        count++;
-                    }
-
-            if (count == 0) return Point.Empty;
-            return new Point(sumX / count, sumY / count);
-        }
-
         // compute centroid from a dedicated head mask
         private static Point EstimateHeadCenterFromMask(bool[,] headMask)
         {
@@ -729,8 +709,8 @@ namespace AutoSpriteGenerator
             int headHeight = Math.Max(1, bottom - top + 1);
 
             // Choose a base mouth position: slightly lower than head center (cute), with small jitter.
-            int baseY = top + (int)Math.Round(headHeight * 0.60) + RNG.Rand.Next(-1, 2);
-            int baseX = headCenter.IsEmpty ? left + headWidth / 2 : headCenter.X + RNG.Rand.Next(-1, 2);
+            int baseY = top + (int)Math.Round(headHeight * 0.60) + DeterministicRandom.Next("AddMouth",  - 1, 2);
+            int baseX = headCenter.IsEmpty ? left + headWidth / 2 : headCenter.X + DeterministicRandom.Next("AddMouth", -1, 2);
 
             bool[,] searchMask = headMask;
             var found = PixelUtils.FindNearestMaskPoint(searchMask, baseX, baseY, Math.Max(2, headWidth / 2));
@@ -757,7 +737,7 @@ namespace AutoSpriteGenerator
             {
                 var vals = Enum.GetValues(typeof(MouthStyle));
                 // exclude last enum (Random) when picking
-                style = (MouthStyle)vals.GetValue(RNG.Rand.Next(0, vals.Length - 1));
+                style = (MouthStyle)vals.GetValue(DeterministicRandom.Next("AddMouth", 0, vals.Length - 1));
             }
 
             // Draw styles — keep mouths small & simple so they read well at 64x64 pixel art.
@@ -863,24 +843,6 @@ namespace AutoSpriteGenerator
             }
         }
 
-
-
-
-        // ---------- Backwards-compatible overload (keeps existing call sites working) ----------
-        // old signature: (Image limbImg, bool[,] bodyMask, Rgba32 limbColor, int margin)
-        // This overload infers a palette and forwards to the rich overload.
-        public static void AddAnchoredLimbs(Image<Rgba32> limbImg, bool[,] bodyMask, Rgba32 limbAccentColor, int margin, LimbStyle? forcedStyle = null)
-        {
-            // derive reasonable palette pieces when caller only provided a single accent color
-            var baseColor = ColorUtils.Darken(limbAccentColor, 0.10f);    // base slightly darker than accent
-            var patternColor = ColorUtils.Darken(baseColor, 0.55f);
-            var outlineColor = ColorUtils.Darken(baseColor, 0.34f);
-            int nColors = 3;
-            PaletteMode mode = PaletteMode.TwoToneRandom;
-
-            AddAnchoredLimbs(limbImg, bodyMask, baseColor, limbAccentColor, patternColor, outlineColor, nColors, margin, mode, drawPatterns: true, forcedStyle: forcedStyle);
-        }
-
         // ---------- Rich overload (use this from GenerateParts to match body palette exactly) ----------
         public static void AddAnchoredLimbs(
             Image<Rgba32> limbImg,
@@ -916,13 +878,13 @@ namespace AutoSpriteGenerator
             int legLenMax = Math.Max(4, baseLen + 4);
 
             if (forcedStyle == LimbStyle.Random)
-                forcedStyle = (LimbStyle)(RNG.Rand.Next() % (Enum.GetValues(typeof(LimbStyle)).Length - 1));
+                forcedStyle = (LimbStyle)(DeterministicRandom.Next("AddAnchoredLimbs") % (Enum.GetValues(typeof(LimbStyle)).Length - 1));
 
             // draw limb shapes into limbMask (no coloring yet)
-            if (!leftArm.IsEmpty) DrawAdvancedLimbMask(limbMask, leftArm.X, leftArm.Y, -1, 1, RNG.Rand.Next(armLenMin, armLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: false), isLeft: true, isLeg: false);
-            if (!rightArm.IsEmpty) DrawAdvancedLimbMask(limbMask, rightArm.X, rightArm.Y, 1, 1, RNG.Rand.Next(armLenMin, armLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: false), isLeft: false, isLeg: false);
-            if (!leftLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, leftLeg.X, leftLeg.Y, -1, 2, RNG.Rand.Next(legLenMin, legLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: true), isLeft: true, isLeg: true);
-            if (!rightLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, rightLeg.X, rightLeg.Y, 1, 2, RNG.Rand.Next(legLenMin, legLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: true), isLeft: false, isLeg: true);
+            if (!leftArm.IsEmpty) DrawAdvancedLimbMask(limbMask, leftArm.X, leftArm.Y, -1, 1, DeterministicRandom.Next("AddAnchoredLimbs", armLenMin, armLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: false), isLeft: true, isLeg: false);
+            if (!rightArm.IsEmpty) DrawAdvancedLimbMask(limbMask, rightArm.X, rightArm.Y, 1, 1, DeterministicRandom.Next("AddAnchoredLimbs", armLenMin, armLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: false), isLeft: false, isLeg: false);
+            if (!leftLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, leftLeg.X, leftLeg.Y, -1, 2, DeterministicRandom.Next("AddAnchoredLimbs", legLenMin, legLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: true), isLeft: true, isLeg: true);
+            if (!rightLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, rightLeg.X, rightLeg.Y, 1, 2, DeterministicRandom.Next("AddAnchoredLimbs", legLenMin, legLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: true), isLeft: false, isLeg: true);
 
             // If no limb pixels were drawn, exit
             bool any = false;
@@ -997,11 +959,11 @@ namespace AutoSpriteGenerator
             {
                 case LimbStyle.Simple:
                     {
-                        int thickness = RNG.Rand.Next(1, 3);
+                        int thickness = DeterministicRandom.Next("DrawAdvancedLimbMask", 1, 3);
                         for (int i = 1; i <= length; i++)
                         {
-                            int jitterX = RNG.Rand.Next(-1, 2);
-                            int jitterY = RNG.Rand.Next(0, 2);
+                            int jitterX = DeterministicRandom.Next("DrawAdvancedLimbMask", -1, 2);
+                            int jitterY = DeterministicRandom.Next("DrawAdvancedLimbMask", 0, 2);
                             int x = sx + dirX * i + jitterX;
                             int y = sy + dirY * i + jitterY;
                             if (x < margin || x >= w - margin || y < margin || y >= h - margin) break;
@@ -1016,7 +978,7 @@ namespace AutoSpriteGenerator
                         {
                             double t = i / (double)length;
                             int radius = Math.Max(1, 2 - (int)Math.Floor(1.0 * t)); // taper 2 -> 1
-                            int bend = (int)Math.Round(Math.Sin(i * 0.6 + RNG.Rand.NextDouble()) * (isLeft ? -1 : 1));
+                            int bend = (int)Math.Round(Math.Sin(i * 0.6 + DeterministicRandom.NextDouble("DrawAdvancedLimbMask")) * (isLeft ? -1 : 1));
                             int x = sx + dirX * i + bend;
                             int y = sy + dirY * i + (int)Math.Round(t * (isLeg ? 1.2 : 0.6));
                             if (x < margin || x >= w - margin || y < margin || y >= h - margin) break;
@@ -1032,12 +994,12 @@ namespace AutoSpriteGenerator
 
                 case LimbStyle.Segmented:
                     {
-                        int segments = Math.Max(2, Math.Min(length, RNG.Rand.Next(2, 1 + Math.Max(2, length / 2))));
+                        int segments = Math.Max(2, Math.Min(length, DeterministicRandom.Next("DrawAdvancedLimbMask", 2, 1 + Math.Max(2, length / 2))));
                         var centers = new List<Point>();
                         for (int s = 0; s < segments; s++)
                         {
                             double t = (s + 0.5) / segments;
-                            int cx = sx + (int)Math.Round(dirX * t * length + RNG.Rand.Next(-1, 2));
+                            int cx = sx + (int)Math.Round(dirX * t * length + DeterministicRandom.Next("DrawAdvancedLimbMask", -1, 2));
                             int cy = sy + (int)Math.Round(dirY * t * length + (isLeg ? Math.Abs(t - 0.5) * 1.5 : Math.Sin(t * Math.PI) * 1.2));
                             centers.Add(new Point(cx, cy));
                             int segRadius = Math.Max(1, (int)Math.Round(2.2 * (1.0 - t * 0.6)));
@@ -1054,7 +1016,7 @@ namespace AutoSpriteGenerator
 
                 case LimbStyle.Tentacle:
                     {
-                        double phase = RNG.Rand.NextDouble() * Math.PI * 2.0;
+                        double phase = DeterministicRandom.NextDouble("DrawAdvancedLimbMask") * Math.PI * 2.0;
                         double amp = Math.Max(1.0, Math.Min(2.5, length * 0.12));
                         for (int i = 1; i <= length; i++)
                         {
@@ -1067,7 +1029,7 @@ namespace AutoSpriteGenerator
                             SetMaskCircle(mask, x, y, radius, margin);
 
                             // suction-cup pixel occasionally
-                            if (RNG.Rand.NextDouble() < 0.12 && i % 2 == 0)
+                            if (DeterministicRandom.NextDouble("DrawAdvancedLimbMask") < 0.12 && i % 2 == 0)
                             {
                                 int cupX = x + (isLeft ? 1 : -1);
                                 int cupY = y;
@@ -1080,24 +1042,24 @@ namespace AutoSpriteGenerator
 
                 case LimbStyle.Jointed:
                     {
-                        double midT = 0.4 + RNG.Rand.NextDouble() * 0.25;
-                        int elbowX = sx + (int)Math.Round(dirX * length * midT) + RNG.Rand.Next(-1, 2);
-                        int elbowY = sy + (int)Math.Round(dirY * length * midT) + (isLeg ? RNG.Rand.Next(0, 2) : RNG.Rand.Next(-1, 2));
+                        double midT = 0.4 + DeterministicRandom.NextDouble("DrawAdvancedLimbMask") * 0.25;
+                        int elbowX = sx + (int)Math.Round(dirX * length * midT) + DeterministicRandom.Next("DrawAdvancedLimbMask", -1, 2);
+                        int elbowY = sy + (int)Math.Round(dirY * length * midT) + (isLeg ? DeterministicRandom.Next("DrawAdvancedLimbMask", 0, 2) : DeterministicRandom.Next("DrawAdvancedLimbMask", -1, 2));
 
                         // first segment
                         SetMaskLine(mask, sx, sy, elbowX, elbowY, margin);
                         SetMaskCircle(mask, elbowX, elbowY, 2, margin);
 
                         // second segment to end
-                        int endX = sx + dirX * length + RNG.Rand.Next(-1, 2);
-                        int endY = sy + dirY * length + RNG.Rand.Next(0, 2);
+                        int endX = sx + dirX * length + DeterministicRandom.Next("DrawAdvancedLimbMask", -1, 2);
+                        int endY = sy + dirY * length + DeterministicRandom.Next("DrawAdvancedLimbMask", 0, 2);
                         SetMaskLine(mask, elbowX, elbowY, endX, endY, margin);
                         SetMaskCircle(mask, endX, endY, 1, margin);
 
                         // optional fingers/claws for arms
-                        if (!isLeg && RNG.Rand.NextDouble() < 0.6)
+                        if (!isLeg && DeterministicRandom.NextDouble("DrawAdvancedLimbMask") < 0.6)
                         {
-                            int clawCount = RNG.Rand.Next(1, 4);
+                            int clawCount = DeterministicRandom.Next("DrawAdvancedLimbMask", 1, 4);
                             for (int c = 0; c < clawCount; c++)
                             {
                                 int cx = endX + (isLeft ? -1 : 1) * (1 + c);
@@ -1122,7 +1084,7 @@ namespace AutoSpriteGenerator
                         int footY = sy + dirY * length;
                         SetMaskCircle(mask, footX, footY, 2, margin);
 
-                        int toeCount = RNG.Rand.Next(2, 4);
+                        int toeCount = DeterministicRandom.Next("DrawAdvancedLimbMask", 2, 4);
                         for (int t = 0; t < toeCount; t++)
                         {
                             int tx = footX + (t - toeCount / 2);
@@ -1143,7 +1105,7 @@ namespace AutoSpriteGenerator
         // Small helper to pick random limb style when not forced
         private static LimbStyle RandomLimbStyle(bool isLeg)
         {
-            double r = RNG.Rand.NextDouble();
+            double r = DeterministicRandom.NextDouble("RandomLimbStyle");
             if (isLeg)
             {
                 if (r < 0.35) return LimbStyle.Paw;

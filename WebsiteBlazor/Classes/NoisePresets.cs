@@ -9,8 +9,6 @@ namespace WebsiteBlazor.Classes
         {
             if (width < 8) width = 8;
 
-            Random rnd = seed.HasValue ? new Random(seed.Value) : new Random(RNG.Rand.Next());
-
             int minCells, maxCells;
             float minAmpFactor, maxAmpFactor;
             int minOct, maxOct;
@@ -49,8 +47,8 @@ namespace WebsiteBlazor.Classes
                     break;
             }
 
-            int targetCells = rnd.Next(minCells, maxCells + 1);
-            float t = (float)rnd.NextDouble();
+            int targetCells = DeterministicRandom.Next("ComputeForWidth", minCells, maxCells + 1);
+            float t = (float)DeterministicRandom.NextDouble("ComputeForWidth");
             float ampFactor = minAmpFactor + t * (maxAmpFactor - minAmpFactor);
 
             baseNoiseScale = (float)targetCells / (float)width;
@@ -58,8 +56,8 @@ namespace WebsiteBlazor.Classes
 
             amplitudePx = width * ampFactor;
 
-            octaves = rnd.Next(minOct, maxOct + 1);
-            persistence = minPers + (float)rnd.NextDouble() * (maxPers - minPers);
+            octaves = DeterministicRandom.Next("ComputeForWidth", minOct, maxOct + 1);
+            persistence = minPers + (float)DeterministicRandom.NextDouble("ComputeForWidth") * (maxPers - minPers);
 
             // portable clamps
             baseNoiseScale = Clamp(baseNoiseScale, 0.004f, 0.6f);

@@ -1,6 +1,7 @@
 ﻿using System;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
+using WebsiteBlazor.Classes;
 
 namespace AutoSpriteGenerator
 {
@@ -8,7 +9,7 @@ namespace AutoSpriteGenerator
     {
         public static Rgba32 RandomColorHarmonious()
         {
-            int hue = RNG.Rand.Next(360);
+            int hue = DeterministicRandom.Next("RandomColorHarmonious", 360);
             return ColorFromHSV(hue, 0.6, 0.65);
         }
 
@@ -17,7 +18,7 @@ namespace AutoSpriteGenerator
             double h, s, v;
             RGBtoHSV(baseColor, out h, out s, out v);
 
-            h = (h + RNG.Rand.NextDouble() * 60 - 30 + 360) % 360;
+            h = (h + DeterministicRandom.NextDouble("RandomAccent") * 60 - 30 + 360) % 360;
             return ColorFromHSV((int)h, Math.Min(1, s + 0.12), Math.Min(1, v + 0.12));
         }
 
