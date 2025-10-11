@@ -9,6 +9,10 @@
       "PackagePath": "staticwebassets\\WebsiteBlazor.styles.css"
     },
     {
+      "Id": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\wwwroot\\404.html",
+      "PackagePath": "staticwebassets\\404.html"
+    },
+    {
       "Id": "C:\\Users\\Colin\\source\\repos\\nipoondo.github.io\\WebsiteBlazor\\wwwroot\\css\\app.css",
       "PackagePath": "staticwebassets\\css\\app.css"
     },

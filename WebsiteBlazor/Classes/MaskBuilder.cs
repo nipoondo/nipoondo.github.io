@@ -196,10 +196,12 @@ namespace AutoSpriteGenerator
             // 6) cleanup and small morphology for readability at small sprite sizes
             if(settings.UseMorphologicClean)
                 MorphologicalClean(mask, 1);
-            if (settings.UseDilatation) 
-                mask = Dilate(mask);
-            if (settings.UseErosion) 
-                mask = Erode(mask);
+            if (settings.UseErosion)
+                for (int i = 0; i < settings.NumberOfErosions; i++)
+                    mask = Erode(mask);
+            if (settings.UseDilatation)
+                for (int i = 0; i < settings.NumberOfDilatations; i++)
+                    mask = Dilate(mask);
 
             return mask;
         }

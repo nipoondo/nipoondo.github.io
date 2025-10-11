@@ -854,7 +854,6 @@ namespace AutoSpriteGenerator
             int nColors,
             int margin,
             PaletteMode paletteMode,
-            bool drawPatterns = true,
             LimbStyle? forcedStyle = null)
         {
             // build limbMask first (limb-only pixels)
@@ -896,11 +895,6 @@ namespace AutoSpriteGenerator
             // Now color the limb image with the same noise/palette code used by body/head
             // Outline = false for palette step: we'll draw outline after adding patterns
             ApplyNoisePalette(limbImg, limbMask, baseColor, accentColor, nColors: nColors, outline: false, mode: paletteMode);
-
-            if (drawPatterns)
-            {
-                AddInternalPatterns(limbImg, limbMask, patternColor);
-            }
 
             // Finally draw the outline so limbs have the same edge treatment as the body
             DrawMaskOutline(limbImg, limbMask, outlineColor);

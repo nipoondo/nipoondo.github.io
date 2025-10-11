@@ -5,7 +5,6 @@ namespace WebsiteBlazor.Classes
     public class Settings
     {
         public int Dimension = 64;
-        public bool DrawPatterns = false;
         public int Margin = 0;
         
         public ColorStyle ColorStyle = ColorStyle.Harmonious;
@@ -35,7 +34,9 @@ namespace WebsiteBlazor.Classes
         public bool UseProtrusions = false;
         public bool UseMorphologicClean = true;
         public bool UseDilatation = false;
+        public int NumberOfDilatations = 1;
         public bool UseErosion = false;
+        public int NumberOfErosions = 1;
     }
 
     public enum NoiseStyle { Blobby, Balanced, Detailed, Random }
@@ -89,7 +90,7 @@ namespace WebsiteBlazor.Classes
 
     public enum BodyArchetype
     {
-        Random = 0,      // choose a random archetype
+        Random = 0,    // choose a random archetype
         Normal,        // the default rounded body
         Thin,          // narrow tall body
         Tall,          // very tall column

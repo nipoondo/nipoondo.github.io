@@ -171,24 +171,42 @@
             }
             else
             {
-                <div style="width:420px; height:420px; display:flex; align-items:center; justify-content:center; color:var(--muted);">No sprite yet — click Generate</div>
+                <div style="width:300px; height:300px; display:flex; align-items:center; justify-content:center; color:var(--muted);">No sprite yet — click Generate</div>
             }
 
             <div style="display:flex; gap:8px; width:100%; justify-content:center;">
-                <button class="btn primary" style="width:200px; height:56px;" @onclick="GenerateMonsterSprite">Generate</button>
                 <button class="btn" style="height:56px;" @onclick="() => { _settings = new Classes.Settings(); }">Reset</button>
+                <button class="btn primary" style="width:200px; height:56px;" @onclick="GenerateMonsterSprite">Generate</button>
             </div>
         </div>
 
         <div class="controls">
             <fieldset>
-                <legend>Dimensions</legend>
-                <div class="top-row">
-                    <button class="option-btn @( _settings.Dimension == 32 ? "active-button" : "")" @onclick="(() => _settings.Dimension = 32)">32px</button>
-                    <button class="option-btn @( _settings.Dimension == 48 ? "active-button" : "")" @onclick="(() => _settings.Dimension = 48)">48px</button>
-                    <button class="option-btn @( _settings.Dimension == 64 ? "active-button" : "")" @onclick="(() => _settings.Dimension = 64)">64px</button>
-                    <button class="option-btn @( _settings.Dimension == 128 ? "active-button" : "")" @onclick="(() => _settings.Dimension = 128)">128px</button>
-                </div>
+                <legend>Advanced</legend>
+                <div class="morph-grid">
+                    <div>
+                        <label style="margin-top:10px;" class="note">Dimension</label>
+                        <div style="display:flex; gap:8px;">
+                            <button class="option-btn @( _settings.Dimension == 32 ? "active-button" : "")" @onclick="(() => _settings.Dimension = 32)">32px</button>
+                            <button class="option-btn @( _settings.Dimension == 48 ? "active-button" : "")" @onclick="(() => _settings.Dimension = 48)">48px</button>
+                            <button class="option-btn @( _settings.Dimension == 64 ? "active-button" : "")" @onclick="(() => _settings.Dimension = 64)">64px</button>
+                            <button class="option-btn @( _settings.Dimension == 128 ? "active-button" : "")" @onclick="(() => _settings.Dimension = 128)">128px</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="margin-top:10px;" class="note">Margin (@_settings.Margin.ToString())px</label>
+                            <input class="range" type="range" min="0" max="12" @bind="_settings.Margin" />
+                    </div>
+
+                    <div>
+                        <label style="margin-top:10px;" class="note">Seed</label>
+                        <div style="display:flex; gap:8px;">
+                            <button class="option-btn @(_settings.UseSeed ? "active-button" : "")" @onclick="(() => _settings.UseSeed = !_settings.UseSeed)">Use</button>
+                            <input class="small-input" type="number" @bind="_settings.Seed" disabled="@(!_settings.UseSeed)" />
+                        </div>
+                    </div>
+                 </div>
             </fieldset>
 
             <fieldset>
@@ -270,7 +288,7 @@
             </fieldset>
 
             <fieldset>
-                <legend>Morphology</legend>
+                <legend>Body Morphology</legend>
                 <div class="morph-grid">
                     <div>
                         <label style="margin-top:10px;" class="note">Segments</label>
@@ -305,33 +323,36 @@
                             <button class="option-btn @(_settings.UseProtrusions ? "active-button" : "")" @onclick="(() => _settings.UseProtrusions = !_settings.UseProtrusions)">Use</button>
                         </div>
                     </div>
-                </div>
 
-                <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
-                    <button class="option-btn @(_settings.UseMorphologicClean ? "active-button" : "")" @onclick="(() => _settings.UseMorphologicClean = !_settings.UseMorphologicClean)">Morphologic Clean</button>
-                    <button class="option-btn @(_settings.UseDilatation ? "active-button" : "")" @onclick="(() => _settings.UseDilatation = !_settings.UseDilatation)">Dilatation</button>
-                    <button class="option-btn @(_settings.UseErosion ? "active-button" : "")" @onclick="(() => _settings.UseErosion = !_settings.UseErosion)">Erosion</button>
+                    <div>
+                        <label style="margin-top:10px;" class="note">Morphologic Clean</label>
+                        <div style="display:flex; gap:8px;">
+                            <button class="option-btn @(_settings.UseMorphologicClean ? "active-button" : "")" @onclick="(() => _settings.UseMorphologicClean = !_settings.UseMorphologicClean)">Use</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="margin-top:10px;" class="note">Erosion</label>
+                        <div style="display:flex; gap:8px;">
+                            <button class="option-btn @(_settings.UseErosion ? "active-button" : "")" @onclick="(() => _settings.UseErosion = !_settings.UseErosion)">Use</button>
+                            <label class="note">@(_settings.NumberOfErosions.ToString())</label>
+                            <input class="range" type="range" min="1" max="12" @bind="_settings.NumberOfErosions" disabled="@(!_settings.UseErosion)" />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label style="margin-top:10px;" class="note">Dilatation</label>
+                        <div style="display:flex; gap:8px;">
+                            <button class="option-btn @(_settings.UseDilatation ? "active-button" : "")" @onclick="(() => _settings.UseDilatation = !_settings.UseDilatation)">Use</button>
+                            <label class="note">@(_settings.NumberOfDilatations.ToString())</label>
+                            <input class="range" type="range" min="1" max="12" @bind="_settings.NumberOfDilatations" disabled="@(!_settings.UseDilatation)" />
+                        </div>
+                    </div>
                 </div>
             </fieldset>
 
             <fieldset>
-                <legend>Advanced & Animation</legend>
-                <div style="margin-bottom:8px;">
-                    <label class="note">Patterns (ugly, don&acute;t use)</label>
-                    <div class="grid-buttons" style="margin-top:6px;"><button class="option-btn @(!_settings.DrawPatterns ? "active-button" : "")" @onclick="(() => _settings.DrawPatterns = false)">No</button><button class="option-btn @(_settings.DrawPatterns ? "active-button" : "")" @onclick="(() => _settings.DrawPatterns = true)">Yes</button></div>
-                </div>
-
-                <div>
-                    <label class="note">Margin: @_settings.Margin</label>
-                    <input class="range" type="range" min="0" max="12" @bind="_settings.Margin" />
-                </div>
-
-                <div style="margin-top:10px; display:flex; gap:8px; align-items:center;">
-                    <label class="note">Seed</label>
-                    <button class="option-btn @(!_settings.UseSeed ? "active-button" : "")" @onclick="(() => _settings.UseSeed = false)">No</button>
-                    <button class="option-btn @(_settings.UseSeed ? "active-button" : "")" @onclick="(() => _settings.UseSeed = true)">Yes</button>
-                    <input class="small-input" type="number" @bind="_settings.Seed" disabled="@(!_settings.UseSeed)" />
-                </div>
+                <legend>Animation</legend>
 
                 <div style="margin-top:10px;">
                     <label class="note">Frames: @_settings.FrameCount</label>

@@ -43,10 +43,6 @@ namespace WebsiteBlazor.Classes
             var bodyImg = new Image<Rgba32>(width, height);
             bodyImg.Mutate(ctx => ctx.BackgroundColor(new Rgba32(0, 0, 0, 0)));
             FeatureDrawer.ApplyNoisePalette(bodyImg, bodyMask, baseColor, accentColor, nColors: settings.numberOfColors, outline: false, mode: settings.paletteMode);
-            if (settings.DrawPatterns)
-            {
-                FeatureDrawer.AddInternalPatterns(bodyImg, bodyMask, patternColor);
-            }
             FeatureDrawer.DrawMaskOutline(bodyImg, bodyMask, outlineColor);
 
             // head image (so head can be animated independently)
@@ -71,7 +67,6 @@ namespace WebsiteBlazor.Classes
                 settings.numberOfColors,
                 margin,
                 settings.paletteMode,
-                drawPatterns: settings.DrawPatterns,
                 forcedStyle: settings.limbStyle);
 
             // anchors (simple, robust heuristics)
