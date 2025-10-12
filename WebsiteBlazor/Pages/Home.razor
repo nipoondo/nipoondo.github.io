@@ -285,6 +285,12 @@
                         <button class="option-btn @(_settings.limbStyle == l ? "active-button" : "")" @onclick="(() => _settings.limbStyle = l)">@l</button>
                     }
                 </div>
+
+                <div style="display:flex; gap:8px; margin-top:10px;">
+                    <button class="option-btn @(_settings.UseArms == true ? "active-button" : "")" @onclick="(() => _settings.UseArms = !_settings.UseArms)">Draw Arms</button>
+
+                    <button class="option-btn @(_settings.UseLegs == true ? "active-button" : "")" @onclick="(() => _settings.UseLegs = !_settings.UseLegs)">Draw Legs</button>
+                </div>
             </fieldset>
 
             <fieldset>

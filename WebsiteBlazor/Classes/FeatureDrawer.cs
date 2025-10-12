@@ -851,10 +851,8 @@ namespace AutoSpriteGenerator
             Rgba32 accentColor,
             Rgba32 patternColor,
             Rgba32 outlineColor,
-            int nColors,
-            int margin,
-            PaletteMode paletteMode,
-            LimbStyle? forcedStyle = null)
+            Settings settings,
+            int margin)
         {
             // build limbMask first (limb-only pixels)
             int w = bodyMask.GetLength(0), h = bodyMask.GetLength(1);
@@ -876,14 +874,21 @@ namespace AutoSpriteGenerator
             int legLenMin = Math.Max(3, baseLen);
             int legLenMax = Math.Max(4, baseLen + 4);
 
+            var forcedStyle = settings.limbStyle;
             if (forcedStyle == LimbStyle.Random)
                 forcedStyle = (LimbStyle)(DeterministicRandom.Next("AddAnchoredLimbs") % (Enum.GetValues(typeof(LimbStyle)).Length - 1));
 
             // draw limb shapes into limbMask (no coloring yet)
-            if (!leftArm.IsEmpty) DrawAdvancedLimbMask(limbMask, leftArm.X, leftArm.Y, -1, 1, DeterministicRandom.Next("AddAnchoredLimbs", armLenMin, armLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: false), isLeft: true, isLeg: false);
-            if (!rightArm.IsEmpty) DrawAdvancedLimbMask(limbMask, rightArm.X, rightArm.Y, 1, 1, DeterministicRandom.Next("AddAnchoredLimbs", armLenMin, armLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: false), isLeft: false, isLeg: false);
-            if (!leftLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, leftLeg.X, leftLeg.Y, -1, 2, DeterministicRandom.Next("AddAnchoredLimbs", legLenMin, legLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: true), isLeft: true, isLeg: true);
-            if (!rightLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, rightLeg.X, rightLeg.Y, 1, 2, DeterministicRandom.Next("AddAnchoredLimbs", legLenMin, legLenMax + 1), margin, forcedStyle ?? RandomLimbStyle(isLeg: true), isLeft: false, isLeg: true);
+            if (settings.UseArms)
+            {
+                if (!leftArm.IsEmpty) DrawAdvancedLimbMask(limbMask, leftArm.X, leftArm.Y, -1, 1, DeterministicRandom.Next("AddAnchoredLimbs", armLenMin, armLenMax + 1), margin, forcedStyle, isLeft: true, isLeg: false);
+                if (!rightArm.IsEmpty) DrawAdvancedLimbMask(limbMask, rightArm.X, rightArm.Y, 1, 1, DeterministicRandom.Next("AddAnchoredLimbs", armLenMin, armLenMax + 1), margin, forcedStyle, isLeft: false, isLeg: false);
+            }
+            if (settings.UseLegs)
+            {
+                if (!leftLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, leftLeg.X, leftLeg.Y, -1, 2, DeterministicRandom.Next("AddAnchoredLimbs", legLenMin, legLenMax + 1), margin, forcedStyle, isLeft: true, isLeg: true);
+                if (!rightLeg.IsEmpty) DrawAdvancedLimbMask(limbMask, rightLeg.X, rightLeg.Y, 1, 2, DeterministicRandom.Next("AddAnchoredLimbs", legLenMin, legLenMax + 1), margin, forcedStyle, isLeft: false, isLeg: true);
+            }
 
             // If no limb pixels were drawn, exit
             bool any = false;
@@ -894,7 +899,7 @@ namespace AutoSpriteGenerator
 
             // Now color the limb image with the same noise/palette code used by body/head
             // Outline = false for palette step: we'll draw outline after adding patterns
-            ApplyNoisePalette(limbImg, limbMask, baseColor, accentColor, nColors: nColors, outline: false, mode: paletteMode);
+            ApplyNoisePalette(limbImg, limbMask, baseColor, accentColor, nColors: settings.numberOfColors, outline: false, mode: settings.paletteMode);
 
             // Finally draw the outline so limbs have the same edge treatment as the body
             DrawMaskOutline(limbImg, limbMask, outlineColor);

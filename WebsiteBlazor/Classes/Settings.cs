@@ -37,6 +37,9 @@ namespace WebsiteBlazor.Classes
         public int NumberOfDilatations = 1;
         public bool UseErosion = false;
         public int NumberOfErosions = 1;
+
+        public bool UseLegs = true;
+        public bool UseArms = true;
     }
 
     public enum NoiseStyle { Blobby, Balanced, Detailed, Random }

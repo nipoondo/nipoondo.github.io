@@ -64,10 +64,8 @@ namespace WebsiteBlazor.Classes
                 accentColor,    // same accent as body/head
                 patternColor,   // same internal pattern color
                 outlineColor,   // outline matching the body
-                settings.numberOfColors,
-                margin,
-                settings.paletteMode,
-                forcedStyle: settings.limbStyle);
+                settings,
+                margin);
 
             // anchors (simple, robust heuristics)
             var anchors = new Dictionary<string, SixLabors.ImageSharp.Point>();
